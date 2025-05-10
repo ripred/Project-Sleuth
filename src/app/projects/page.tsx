@@ -9,11 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { FolderKanban, Search, PlusCircle, ListFilter, FileText, ExternalLink, MoreHorizontal, Eye, Trash2, Cpu, Tags, BookOpen } from 'lucide-react';
-import type { Project } from '@/lib/types';
+import { FolderKanban, Search, PlusCircle, ListFilter, FileText, ExternalLink, MoreHorizontal, Eye, Trash2, Cpu, Tags, BookOpen, Loader2 } from 'lucide-react';
+import type { Project, AppSettings, EditorSetting } from '@/lib/types';
 import { mockProjects } from '@/lib/mock-data'; // Using mock data for now
 import { useRouter } from 'next/navigation'; 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { toast } from "@/hooks/use-toast";
+import { projectSummary } from '@/ai/flows/project-summary';
+import { fetchWebDocumentation } from '@/ai/flows/web-documentation';
+import { suggestProjectTags } from '@/ai/flows/ai-tagging';
 
 
 // Helper to get a language-specific icon (simplified)
@@ -31,15 +35,17 @@ export default function ProjectsPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // For scan simulation
+  const [isLoadingScan, setIsLoadingScan] = useState(false); // For scan simulation
+  const [isActionLoading, setIsActionLoading] = useState<string | null>(null); // For dropdown actions, format: `${action}-${projectId}`
+
 
   useEffect(() => {
     // Simulate fetching projects
-    setProjects(mockProjects);
+    setProjects([...mockProjects]); // Create a new array to ensure state updates
   }, []);
 
   const handleScanProjects = () => {
-    setIsLoading(true);
+    setIsLoadingScan(true);
     // Simulate a scan operation
     console.log("Scanning for projects (simulated)...");
     setTimeout(() => {
@@ -52,9 +58,11 @@ export default function ProjectsPage() {
         lastScanned: new Date(),
         description: "A project found during the latest scan."
       };
+      // Add to both mockProjects and local state
+      mockProjects.unshift(newProject); 
       setProjects(prev => [newProject, ...prev]);
-      setIsLoading(false);
-      console.log("Scan complete (simulated).");
+      setIsLoadingScan(false);
+      toast({ title: "Scan Complete", description: "Simulated scan finished and one new project added." });
     }, 2000);
   };
 
@@ -64,12 +72,112 @@ export default function ProjectsPage() {
     (project.mainLanguage && project.mainLanguage.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleProjectAction = (projectId: string, action: string) => {
+  const handleProjectAction = async (projectId: string, action: string) => {
     console.log(`Action: ${action} on project ${projectId}`);
+    const currentProject = projects.find(p => p.id === projectId);
+    if (!currentProject && action !== 'view' /* view will handle not found */) {
+        toast({ title: "Error", description: "Project not found.", variant: "destructive" });
+        return;
+    }
+
+    const actionLoadingKey = `${action}-${projectId}`;
+
     if (action === 'view') {
       router.push(`/projects/${projectId}`);
+    } else if (action === 'delete') {
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+      const projectIndex = mockProjects.findIndex(p => p.id === projectId);
+      if (projectIndex > -1) {
+        mockProjects.splice(projectIndex, 1);
+      }
+      toast({ title: "Project Deleted", description: `Project "${currentProject?.name}" has been removed.` });
+    } else if (action === 'open') {
+        let configuredEditor: EditorSetting | null = null;
+        const storedSettings = localStorage.getItem('appSettings');
+        if (storedSettings) {
+            try {
+            const appSettings: AppSettings = JSON.parse(storedSettings);
+            if (appSettings.defaultEditorId && appSettings.editors && appSettings.editors.length > 0) {
+                configuredEditor = appSettings.editors.find(editor => editor.id === appSettings.defaultEditorId) || appSettings.editors[0];
+            } else if (appSettings.editors && appSettings.editors.length > 0) {
+                configuredEditor = appSettings.editors[0];
+            }
+            } catch (error) {
+            console.error("Failed to parse appSettings from localStorage", error);
+            }
+        }
+        const editorCommand = configuredEditor?.name || "your editor";
+        toast({ title: "Open in Editor", description: `This feature would open the project in ${editorCommand} (not implemented in web demo).` });
+    } else if (action === 'analyze') {
+        if (!currentProject) return;
+        setIsActionLoading(actionLoadingKey);
+        toast({ title: "AI Analysis Started", description: `Summarizing ${currentProject.name}...` });
+        try {
+            const summary = await projectSummary({ projectPath: currentProject.path, fileContents: currentProject.description || "No description." });
+            const updatedProjects = projects.map(p => p.id === projectId ? { ...p, aiSummary: summary } : p);
+            setProjects(updatedProjects);
+            const mockProjectIndex = mockProjects.findIndex(p => p.id === projectId);
+            if (mockProjectIndex > -1) {
+            mockProjects[mockProjectIndex].aiSummary = summary;
+            }
+            toast({ title: "AI Analysis Complete", description: `Summary generated for ${currentProject.name}.` });
+        } catch (error) {
+            console.error("Error in AI Project Summary:", error);
+            toast({ title: "AI Analysis Failed", description: (error as Error).message || "Could not generate summary.", variant: "destructive" });
+        } finally {
+            setIsActionLoading(null);
+        }
+    } else if (action === 'tags') {
+        if (!currentProject) return;
+        if (!currentProject.aiSummary) {
+            toast({ title: "Cannot Suggest Tags", description: "Project summary not available. Run AI summary first.", variant: "destructive" });
+            return;
+        }
+        setIsActionLoading(actionLoadingKey);
+        toast({ title: "Generating Tags", description: `Suggesting tags for ${currentProject.name}...` });
+        try {
+            const tags = await suggestProjectTags({
+            projectDescription: currentProject.aiSummary.purpose || currentProject.description || "Project Details",
+            fileList: "main.ts, package.json, README.md", // Placeholder
+            language: currentProject.mainLanguage || "unknown"
+            });
+            const updatedProjects = projects.map(p => p.id === projectId ? { ...p, aiTags: tags.tags } : p);
+            setProjects(updatedProjects);
+            const mockProjectIndex = mockProjects.findIndex(p => p.id === projectId);
+            if (mockProjectIndex > -1) {
+            mockProjects[mockProjectIndex].aiTags = tags.tags;
+            }
+            toast({ title: "Tags Suggested", description: `Generated ${tags.tags.length} tags for ${currentProject.name}.` });
+        } catch (error) {
+            console.error("Error in AI Tagging:", error);
+            toast({ title: "Tag Suggestion Failed", description: (error as Error).message || "Could not suggest tags.", variant: "destructive" });
+        } finally {
+            setIsActionLoading(null);
+        }
+    } else if (action === 'docs') {
+        if (!currentProject) return;
+        if (!currentProject.aiSummary?.technologies) {
+            toast({ title: "Cannot Fetch Docs", description: "Project technologies not available. Run AI summary first.", variant: "destructive" });
+            return;
+        }
+        setIsActionLoading(actionLoadingKey);
+        toast({ title: "Fetching Documentation", description: `Searching docs for ${currentProject.name}...` });
+        try {
+            const docs = await fetchWebDocumentation({ projectName: currentProject.name, technologies: currentProject.aiSummary.technologies });
+            const updatedProjects = projects.map(p => p.id === projectId ? { ...p, aiDocumentationUrls: docs.documentationUrls } : p);
+            setProjects(updatedProjects);
+            const mockProjectIndex = mockProjects.findIndex(p => p.id === projectId);
+            if (mockProjectIndex > -1) {
+            mockProjects[mockProjectIndex].aiDocumentationUrls = docs.documentationUrls;
+            }
+            toast({ title: "Documentation Found", description: `Found ${docs.documentationUrls.length} URLs for ${currentProject.name}.` });
+        } catch (error) {
+            console.error("Error in Fetch Web Documentation:", error);
+            toast({ title: "Documentation Fetch Failed", description: (error as Error).message || "Could not fetch documentation.", variant: "destructive" });
+        } finally {
+            setIsActionLoading(null);
+        }
     }
-    // Implement other actions like delete, analyze, etc.
   };
 
   return (
@@ -87,9 +195,9 @@ export default function ProjectsPage() {
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button onClick={handleScanProjects} disabled={isLoading}>
-                  <Search className="mr-2 h-4 w-4" />
-                  {isLoading ? "Scanning..." : "Scan for Projects"}
+                <Button onClick={handleScanProjects} disabled={isLoadingScan}>
+                  {isLoadingScan ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                  {isLoadingScan ? "Scanning..." : "Scan for Projects"}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -186,7 +294,7 @@ export default function ProjectsPage() {
                         <DropdownMenuTrigger asChild>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" disabled={!!isActionLoading}>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
@@ -197,23 +305,26 @@ export default function ProjectsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'view')}>
+                          <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'view')} disabled={!!isActionLoading}>
                             <Eye className="mr-2 h-4 w-4" /> View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'analyze')}>
-                            <Cpu className="mr-2 h-4 w-4" /> Analyze (AI)
+                          <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'analyze')} disabled={isActionLoading === `analyze-${project.id}`}>
+                            {isActionLoading === `analyze-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cpu className="mr-2 h-4 w-4" />}
+                             Analyze (AI)
                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'tags')}>
-                            <Tags className="mr-2 h-4 w-4" /> Suggest Tags (AI)
+                           <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'tags')} disabled={isActionLoading === `tags-${project.id}`}>
+                            {isActionLoading === `tags-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
+                            Suggest Tags (AI)
                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'docs')}>
-                            <BookOpen className="mr-2 h-4 w-4" /> Fetch Docs (AI)
+                           <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'docs')} disabled={isActionLoading === `docs-${project.id}`}>
+                            {isActionLoading === `docs-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookOpen className="mr-2 h-4 w-4" />}
+                            Fetch Docs (AI)
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'open')}>
+                          <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'open')} disabled={!!isActionLoading}>
                             <ExternalLink className="mr-2 h-4 w-4" /> Open in Editor
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive" onClick={() => handleProjectAction(project.id, 'delete')}>
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleProjectAction(project.id, 'delete')} disabled={!!isActionLoading}>
                             <Trash2 className="mr-2 h-4 w-4" /> Delete Project
                           </DropdownMenuItem>
                         </DropdownMenuContent>
