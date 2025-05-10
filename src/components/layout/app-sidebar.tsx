@@ -60,6 +60,7 @@ export function AppSidebar() {
                     <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
                   </div>
                 </Link>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
