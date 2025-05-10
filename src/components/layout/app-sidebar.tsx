@@ -31,8 +31,10 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <Link href="/" className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
+          <div>
             <Briefcase className="h-7 w-7 text-primary group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
             <span className="text-xl font-semibold group-data-[collapsible=icon]:hidden">Project Sleuth</span>
+          </div>
         </Link>
       </SidebarHeader>
       <Separator />
