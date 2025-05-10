@@ -1,7 +1,7 @@
 
 "use client"
 
-import React from 'react'; // Added import
+import React from 'react';
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { usePathname } from "next/navigation"
@@ -26,7 +26,9 @@ function generateBreadcrumbs(pathname: string) {
   pathParts.forEach((part, index) => {
     const href = "/" + pathParts.slice(0, index + 1).join("/");
     // Capitalize first letter
-    const label = part.charAt(0).toUpperCase() + part.slice(1);
+    let label = part.charAt(0).toUpperCase() + part.slice(1);
+    // Replace URL encoded hyphens with spaces, and decode URI components
+    label = decodeURIComponent(label.replace(/-/g, ' '));
     breadcrumbs.push({ label, href });
   });
 

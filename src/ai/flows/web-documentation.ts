@@ -43,9 +43,23 @@ const webSearchTool = ai.defineTool({
 async (input) => {
     // Placeholder for web search implementation. Replace with actual web search logic.
     // This example returns a hardcoded list of URLs for demonstration purposes.
-    return [
-      `https://example.com/docs/${input.query.split(' ')[0].toLowerCase()}`,
-    ];
+    // A more robust implementation would use a search API.
+    const tech = input.query.split(' ')[0].toLowerCase();
+    // Simulate some variability in finding URLs
+    if (tech === 'react') {
+        return ['https://react.dev/'];
+    } else if (tech === 'next.js' || tech === 'nextjs') {
+        return ['https://nextjs.org/docs'];
+    } else if (tech === 'vue.js' || tech === 'vue') {
+        return ['https://vuejs.org/guide/introduction.html'];
+    } else if (tech === 'angular') {
+        return ['https://angular.io/docs'];
+    } else if (tech === 'node.js' || tech === 'nodejs') {
+        return ['https://nodejs.org/en/docs'];
+    } else if (tech === 'typescript') {
+        return ['https://www.typescriptlang.org/docs/'];
+    }
+    return [`https://example.com/docs/${tech}`];
   }
 );
 
@@ -55,7 +69,7 @@ const prompt = ai.definePrompt({
   input: {schema: FetchWebDocumentationInputSchema},
   output: {schema: FetchWebDocumentationOutputSchema},
   tools: [webSearchTool],
-  prompt: `You are an AI assistant helping users find documentation URLs for their projects.\n  The project is named \"{{{projectName}}}\" and uses the following technologies: {{{technologies}}}.\n  Your goal is to find the official documentation URLs for each technology used in the project.\n  Use the webSearch tool to find the documentation URLs for each technology.\n  Return a JSON array of documentation URLs.\n  If you can't find a documentation url for a technology, omit it from the output array.`,,
+  prompt: `You are an AI assistant helping users find documentation URLs for their projects.\n  The project is named "{{{projectName}}}" and uses the following technologies: {{{technologies}}}.\n  Your goal is to find the official documentation URLs for each technology used in the project.\n  Use the webSearch tool to find the documentation URLs for each technology.\n  Return a JSON array of documentation URLs.\n  If you can't find a documentation url for a technology, omit it from the output array.`,
 });
 
 const fetchWebDocumentationFlow = ai.defineFlow(
@@ -65,16 +79,14 @@ const fetchWebDocumentationFlow = ai.defineFlow(
     outputSchema: FetchWebDocumentationOutputSchema,
   },
   async input => {
-    const technologies = input.technologies.split(',').map(tech => tech.trim());
-    const documentationUrls: string[] = [];
+    // The flow calls the prompt, and the prompt will (potentially multiple times) call the tool.
+    const llmResponse = await prompt(input);
 
-    for (const technology of technologies) {
-      const searchResults = await webSearchTool({
-        query: `official documentation for ${technology}`,
-      });
-      documentationUrls.push(...searchResults);
+    if (llmResponse.output && llmResponse.output.documentationUrls) {
+        return llmResponse.output;
     }
-
-    return {documentationUrls};
+    
+    // Fallback or error handling if LLM doesn't provide expected output
+    return { documentationUrls: [] };
   }
 );
