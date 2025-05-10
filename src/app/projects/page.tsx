@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -11,13 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { FolderKanban, Search, PlusCircle, ListFilter, FileText, ExternalLink, MoreHorizontal, Eye, Trash2, Cpu, Tags, BookOpen, Loader2 } from 'lucide-react';
 import type { Project, AppSettings, EditorSetting } from '@/lib/types';
-import { mockProjects } from '@/lib/mock-data'; // Using mock data for now
-import { useRouter } from 'next/navigation'; 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { toast } from "@/hooks/use-toast";
-import { projectSummary } from '@/ai/flows/project-summary';
-import { fetchWebDocumentation } from '@/ai/flows/web-documentation';
-import { suggestProjectTags } from '@/ai/flows/ai-tagging';
+import { scanProjects } from '@/server/actions'; // Import the scanProjects server action
+import { useRouter } from 'next/navigation';
 
 
 // Helper to get a language-specific icon (simplified)
@@ -33,37 +27,57 @@ const LanguageIcon = ({ lang }: { lang?: string }) => {
 
 export default function ProjectsPage() {
   const router = useRouter();
+  // Initialize projects state as an empty array
   const [projects, setProjects] = useState<Project[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoadingScan, setIsLoadingScan] = useState(false); // For scan simulation
+  const [isLoadingScan, setIsLoadingScan] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState<string | null>(null); // For dropdown actions, format: `${action}-${projectId}`
 
 
   useEffect(() => {
-    // Simulate fetching projects
-    setProjects([...mockProjects]); // Create a new array to ensure state updates
+    // In a real application, you might fetch saved projects here on load.
+    // For now, the list starts empty until a scan is performed.
+    console.log("Projects page loaded. Waiting for scan or initial data fetch.");
   }, []);
 
-  const handleScanProjects = () => {
+  // Refactored handleScanProjects to use the server action
+  const handleScanProjects = async () => {
     setIsLoadingScan(true);
-    // Simulate a scan operation
-    console.log("Scanning for projects (simulated)...");
-    setTimeout(() => {
-      // Add a new mock project or update existing ones
-      const newProject: Project = {
-        id: `new-project-${Date.now()}`,
-        name: "Newly Discovered Project",
-        path: "/path/to/newly/discovered",
-        mainLanguage: "Python",
-        lastScanned: new Date(),
-        description: "A project found during the latest scan."
-      };
-      // Add to both mockProjects and local state
-      mockProjects.unshift(newProject); 
-      setProjects(prev => [newProject, ...prev]);
+    toast({ title: "Scanning", description: "Scanning your machine for projects...", duration: 5000 });
+
+    try {
+      let appSettings: AppSettings | undefined;
+      if (typeof window !== 'undefined') {
+        const storedSettings = localStorage.getItem('appSettings');
+        if (storedSettings) {
+          try {
+            appSettings = JSON.parse(storedSettings);
+          } catch (error) {
+            console.error("Failed to parse appSettings from localStorage", error);
+          }
+        }
+      }
+
+      const dirsToScan = appSettings?.defaultScanPaths || [];
+
+      if (!dirsToScan || dirsToScan.length === 0) {
+        toast({ title: "Scan Paths Not Set", description: "Please configure default scan paths in settings.", variant: "destructive" });
+        setIsLoadingScan(false);
+        return;
+      }
+
+      console.log("Scanning directories:", dirsToScan);
+
+      const discoveredProjects = await scanProjects(dirsToScan);
+      // scanProjects now returns full Project objects
+      setProjects(discoveredProjects);
+      toast({ title: "Scan Complete", description: `Found ${discoveredProjects.length} projects.` });
+    } catch (error) {
+      console.error("Error during scan:", error); // More detailed logging
+      toast({ title: "Scan Failed", description: (error as Error).message || "An error occurred during scan.", variant: "destructive" });
+    } finally {
       setIsLoadingScan(false);
-      toast({ title: "Scan Complete", description: "Simulated scan finished and one new project added." });
-    }, 2000);
+    }
   };
 
   const filteredProjects = projects.filter(project =>
@@ -76,110 +90,144 @@ export default function ProjectsPage() {
     event?.stopPropagation(); // Stop event from bubbling to row's onClick
     console.log(`Action: ${action} on project ${projectId}`);
     const currentProject = projects.find(p => p.id === projectId);
-    if (!currentProject && action !== 'view' /* view will handle not found */) {
-        toast({ title: "Error", description: "Project not found.", variant: "destructive" });
+    // View action doesn't require the project to be found in the current state immediately
+    if (!currentProject && action !== 'view') {
+        toast({ title: "Error", description: "Project not found in current list.", variant: "destructive" });
         return;
     }
 
     const actionLoadingKey = `${action}-${projectId}`;
+    setIsActionLoading(actionLoadingKey); // Set loading state for the specific action on the specific project
 
-    if (action === 'view') {
-      router.push(`/projects/${projectId}`);
-    } else if (action === 'delete') {
-      setProjects(prev => prev.filter(p => p.id !== projectId));
-      const projectIndex = mockProjects.findIndex(p => p.id === projectId);
-      if (projectIndex > -1) {
-        mockProjects.splice(projectIndex, 1);
-      }
-      toast({ title: "Project Deleted", description: `Project "${currentProject?.name}" has been removed.` });
-    } else if (action === 'open') {
-        let configuredEditor: EditorSetting | null = null;
-        const storedSettings = localStorage.getItem('appSettings');
-        if (storedSettings) {
-            try {
-            const appSettings: AppSettings = JSON.parse(storedSettings);
-            if (appSettings.defaultEditorId && appSettings.editors && appSettings.editors.length > 0) {
-                configuredEditor = appSettings.editors.find(editor => editor.id === appSettings.defaultEditorId) || appSettings.editors[0];
-            } else if (appSettings.editors && appSettings.editors.length > 0) {
-                configuredEditor = appSettings.editors[0];
+    try {
+      if (action === 'view') {
+            router.push(`/projects/${projectId}`);
+        } else if (action === 'delete') {
+            // TODO: Implement actual project deletion logic on the backend.
+            // This should call a backend endpoint to delete the project from the database.
+            console.log(`Attempting to delete project ${projectId} (real implementation needed on backend)...`);
+             // Simulate async operation visually
+            await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+
+            // On successful backend deletion:
+            setProjects(prev => prev.filter(p => p.id !== projectId));
+            toast({ title: "Project Deletion Initiated", description: `Attempted to remove project "${currentProject?.name}". (Backend implementation required)` });
+
+        } else if (action === 'open') {
+            // TODO: Implement logic to open the project in the configured editor.
+            // This will likely require a backend component or native integration
+            // to execute a command on the user's machine.
+            let configuredEditor: EditorSetting | null = null;
+            const storedSettings = localStorage.getItem('appSettings');
+            if (storedSettings) {
+                try {
+                const appSettings: AppSettings = JSON.parse(storedSettings);
+                if (appSettings.defaultEditorId && appSettings.editors && appSettings.editors.length > 0) {
+                    configuredEditor = appSettings.editors.find(editor => editor.id === appSettings.defaultEditorId) || appSettings.editors[0];
+                } else if (appSettings.editors && appSettings.editors.length > 0) {
+                    configuredEditor = appSettings.editors[0];
+                }
+                } catch (error) {
+                console.error("Failed to parse appSettings from localStorage", error);
+                }
             }
-            } catch (error) {
-            console.error("Failed to parse appSettings from localStorage", error);
-            }
+            const editorCommand = configuredEditor?.name || "your editor";
+            console.log(`Attempting to open project ${currentProject?.path} in ${editorCommand} (real implementation needed)...`);
+            // Simulate async operation visually
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+            toast({ title: "Open in Editor Initiated", description: `Attempted to open project in ${editorCommand}. (Backend implementation required)` });
+
+        } else if (action === 'analyze') {
+            if (!currentProject) return; // Should not happen due to check above, but good practice
+            // TODO: Implement calling a backend API route that triggers the AI summary flow.
+            // The backend should read the project files, call the AI model (using projectSummary),
+            // save the summary to the database, and return the updated project data.
+            console.log(`Attempting AI analysis for project ${currentProject.name} (real implementation needed on backend)...`);
+            toast({ title: "AI Analysis Started", description: `Requesting summary for ${currentProject.name}...` });
+
+            // Placeholder for backend API call:
+            // const response = await fetch(`/api/projects/${projectId}/analyze`);
+            // if (response.ok) {
+            //   const updatedProject = await response.json();
+            //   // Update state with the project data returned from the backend
+            //   setProjects(prev => prev.map(p => p.id === projectId ? updatedProject : p));
+            //   toast({ title: "AI Analysis Complete", description: `Summary generated for ${currentProject.name}.` });
+            // } else {
+            //   const errorData = await response.json();
+            //   throw new Error(errorData.message || "Failed to generate summary.");
+            // }
+
+             // Simulate async operation visually
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call duration
+            toast({ title: "AI Analysis Initiated", description: `Request for analysis of ${currentProject.name} sent. (Backend implementation required)` });
+
+
+        } else if (action === 'tags') {
+            if (!currentProject) return;
+             if (!currentProject.aiSummary) {
+                 toast({ title: "Cannot Suggest Tags", description: "Project summary not available. Run AI summary first.", variant: "destructive" });
+                 setIsActionLoading(null); // Ensure loading is turned off if action is blocked
+                 return;
+             }
+            // TODO: Implement calling a backend API route that triggers the AI tagging flow.
+            // The backend should use the project data (potentially reading files if necessary),
+            // call the AI model (using suggestProjectTags), save the tags to the database,
+            // and return the updated project data.
+            console.log(`Attempting AI tagging for project ${currentProject.name} (real implementation needed on backend)...`);
+            toast({ title: "Generating Tags", description: `Requesting tags for ${currentProject.name}...` });
+
+            // Placeholder for backend API call:
+            // const response = await fetch(`/api/projects/${projectId}/tags`);
+            // if (response.ok) {
+            //   const updatedProject = await response.json();
+            //   setProjects(prev => prev.map(p => p.id === projectId ? updatedProject : p));
+            //   toast({ title: "Tags Suggested", description: `Generated tags for ${currentProject.name}.` });
+            // } else {
+            //    const errorData = await response.json();
+            //    throw new Error(errorData.message || "Failed to suggest tags.");
+            // }
+
+             // Simulate async operation visually
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call duration
+            toast({ title: "Tag Suggestion Initiated", description: `Request for tags of ${currentProject.name} sent. (Backend implementation required)` });
+
+
+        } else if (action === 'docs') {
+            if (!currentProject) return;
+             if (!currentProject.aiSummary?.technologies) {
+                 toast({ title: "Cannot Fetch Docs", description: "Project technologies not available. Run AI summary first.", variant: "destructive" });
+                 setIsActionLoading(null); // Ensure loading is turned off if action is blocked
+                 return;
+             }
+            // TODO: Implement calling a backend API route that triggers the web documentation flow.
+            // The backend should use the project technologies, call the AI model (using fetchWebDocumentation),
+            // save the documentation URLs to the database, and return the updated project data.
+            console.log(`Attempting to fetch documentation for project ${currentProject.name} (real implementation needed on backend)...`);
+            toast({ title: "Fetching Documentation", description: `Requesting docs for ${currentProject.name}...` });
+
+             // Placeholder for backend API call:
+            // const response = await fetch(`/api/projects/${projectId}/docs`);
+            // if (response.ok) {
+            //   const updatedProject = await response.json();
+            //   setProjects(prev => prev.map(p => p.id === projectId ? updatedProject : p));
+            //   toast({ title: "Documentation Found", description: `Found documentation URLs for ${currentProject.name}.` });
+            // } else {
+            //    const errorData = await response.json();
+            //    throw new Error(errorData.message || "Failed to fetch documentation.");
+            // }
+
+            // Simulate async operation visually
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call duration
+             toast({ title: "Documentation Fetch Initiated", description: `Request for documentation of ${currentProject.name} sent. (Backend implementation required)` });
         }
-        const editorCommand = configuredEditor?.name || "your editor";
-        toast({ title: "Open in Editor", description: `This feature would open the project in ${editorCommand} (not implemented in web demo).` });
-    } else if (action === 'analyze') {
-        if (!currentProject) return;
-        setIsActionLoading(actionLoadingKey);
-        toast({ title: "AI Analysis Started", description: `Summarizing ${currentProject.name}...` });
-        try {
-            const summary = await projectSummary({ projectPath: currentProject.path, fileContents: currentProject.description || "No description." });
-            const updatedProjects = projects.map(p => p.id === projectId ? { ...p, aiSummary: summary } : p);
-            setProjects(updatedProjects);
-            const mockProjectIndex = mockProjects.findIndex(p => p.id === projectId);
-            if (mockProjectIndex > -1) {
-            mockProjects[mockProjectIndex].aiSummary = summary;
-            }
-            toast({ title: "AI Analysis Complete", description: `Summary generated for ${currentProject.name}.` });
-        } catch (error) {
-            console.error("Error in AI Project Summary:", error);
-            toast({ title: "AI Analysis Failed", description: (error as Error).message || "Could not generate summary.", variant: "destructive" });
-        } finally {
-            setIsActionLoading(null);
-        }
-    } else if (action === 'tags') {
-        if (!currentProject) return;
-        if (!currentProject.aiSummary) {
-            toast({ title: "Cannot Suggest Tags", description: "Project summary not available. Run AI summary first.", variant: "destructive" });
-            return;
-        }
-        setIsActionLoading(actionLoadingKey);
-        toast({ title: "Generating Tags", description: `Suggesting tags for ${currentProject.name}...` });
-        try {
-            const tags = await suggestProjectTags({
-            projectDescription: currentProject.aiSummary.purpose || currentProject.description || "Project Details",
-            fileList: "main.ts, package.json, README.md", // Placeholder
-            language: currentProject.mainLanguage || "unknown"
-            });
-            const updatedProjects = projects.map(p => p.id === projectId ? { ...p, aiTags: tags.tags } : p);
-            setProjects(updatedProjects);
-            const mockProjectIndex = mockProjects.findIndex(p => p.id === projectId);
-            if (mockProjectIndex > -1) {
-            mockProjects[mockProjectIndex].aiTags = tags.tags;
-            }
-            toast({ title: "Tags Suggested", description: `Generated ${tags.tags.length} tags for ${currentProject.name}.` });
-        } catch (error) {
-            console.error("Error in AI Tagging:", error);
-            toast({ title: "Tag Suggestion Failed", description: (error as Error).message || "Could not suggest tags.", variant: "destructive" });
-        } finally {
-            setIsActionLoading(null);
-        }
-    } else if (action === 'docs') {
-        if (!currentProject) return;
-        if (!currentProject.aiSummary?.technologies) {
-            toast({ title: "Cannot Fetch Docs", description: "Project technologies not available. Run AI summary first.", variant: "destructive" });
-            return;
-        }
-        setIsActionLoading(actionLoadingKey);
-        toast({ title: "Fetching Documentation", description: `Searching docs for ${currentProject.name}...` });
-        try {
-            const docs = await fetchWebDocumentation({ projectName: currentProject.name, technologies: currentProject.aiSummary.technologies });
-            const updatedProjects = projects.map(p => p.id === projectId ? { ...p, aiDocumentationUrls: docs.documentationUrls } : p);
-            setProjects(updatedProjects);
-            const mockProjectIndex = mockProjects.findIndex(p => p.id === projectId);
-            if (mockProjectIndex > -1) {
-            mockProjects[mockProjectIndex].aiDocumentationUrls = docs.documentationUrls;
-            }
-            toast({ title: "Documentation Found", description: `Found ${docs.documentationUrls.length} URLs for ${currentProject.name}.` });
-        } catch (error) {
-            console.error("Error in Fetch Web Documentation:", error);
-            toast({ title: "Documentation Fetch Failed", description: (error as Error).message || "Could not fetch documentation.", variant: "destructive" });
-        } finally {
-            setIsActionLoading(null);
-        }
+    } catch (error) {
+        console.error(`Error performing action ${action} on project ${projectId}:`, error);
+        toast({ title: `${action.charAt(0).toUpperCase() + action.slice(1)} Failed`, description: (error as Error).message || `An error occurred during ${action}.`, variant: "destructive" });
+    } finally {
+        setIsActionLoading(null); // Always turn off loading state
     }
   };
+
 
   return (
     <TooltipProvider>
@@ -202,8 +250,8 @@ export default function ProjectsPage() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Simulate scanning local drives for new or updated projects.</p>
-                  <p className="text-xs text-muted-foreground">(Full functionality in desktop app)</p>
+                  {/* Updated tooltip text */}
+                  <p>Initiate scanning local drives for new or updated projects. Requires backend implementation.</p>
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -211,7 +259,7 @@ export default function ProjectsPage() {
           <CardContent>
             <p className="text-sm text-muted-foreground">
               Project Sleuth can recursively scan your local drives for project folders based on criteria like .git folders, AI residue files, and common source file extensions.
-              Currently, this feature is simulated for web demo purposes.
+              The scanning and project management functionality requires a backend implementation.
             </p>
           </CardContent>
         </Card>
@@ -239,7 +287,7 @@ export default function ProjectsPage() {
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button>
+                    <Button disabled> {/* Disable button until manual add is implemented */}
                       <PlusCircle className="mr-2 h-4 w-4" />
                       Add Project Manually
                     </Button>
@@ -266,8 +314,8 @@ export default function ProjectsPage() {
               <TableBody>
                 {filteredProjects.length > 0 ? (
                   filteredProjects.map((project) => (
-                    <TableRow 
-                      key={project.id} 
+                    <TableRow
+                      key={project.id}
                       onClick={() => router.push(`/projects/${project.id}`)}
                       className="cursor-pointer"
                     >
@@ -318,24 +366,27 @@ export default function ProjectsPage() {
                               <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'view', e)} disabled={!!isActionLoading}>
                                   <Eye className="mr-2 h-4 w-4" /> View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'analyze', e)} disabled={isActionLoading === `analyze-${project.id}` || (!!isActionLoading && isActionLoading !== `analyze-${project.id}`)}>
+                              {/* Disable AI actions if another action is loading, or if THIS AI action is loading */}
+                              <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'analyze', e)} disabled={!!isActionLoading}>
                                   {isActionLoading === `analyze-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cpu className="mr-2 h-4 w-4" />}
-                                  Analyze (AI)
+                                  Analyze (AI) {/* Requires backend to call AI flow */}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'tags', e)} disabled={isActionLoading === `tags-${project.id}` || (!!isActionLoading && isActionLoading !== `tags-${project.id}`)}>
-                                  {isActionLoading === `tags-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
-                                  Suggest Tags (AI)
+                               {/* Disable AI actions if another action is loading, or if THIS AI action is loading */}
+                              <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'tags', e)} disabled={!!isActionLoading}>
+                                  {isActionLoading === `tags-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}\
+                                  Suggest Tags (AI) {/* Requires backend to call AI flow */}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'docs', e)} disabled={isActionLoading === `docs-${project.id}` || (!!isActionLoading && isActionLoading !== `docs-${project.id}`)}>
-                                  {isActionLoading === `docs-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookOpen className="mr-2 h-4 w-4" />}
-                                  Fetch Docs (AI)
+                               {/* Disable AI actions if another action is loading, or if THIS AI action is loading */}
+                              <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'docs', e)} disabled={!!isActionLoading}>
+                                  {isActionLoading === `docs-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookOpen className="mr-2 h-4 w-4" />}\
+                                  Fetch Docs (AI) {/* Requires backend to call AI flow */}
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'open', e)} disabled={!!isActionLoading}>
-                                  <ExternalLink className="mr-2 h-4 w-4" /> Open in Editor
+                                  <ExternalLink className="mr-2 h-4 w-4" /> Open in Editor {/* Requires backend/native integration */}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive" onClick={(e) => handleProjectAction(project.id, 'delete', e)} disabled={!!isActionLoading}>
-                                  <Trash2 className="mr-2 h-4 w-4" /> Delete Project
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete Project {/* Requires backend implementation */}
                               </DropdownMenuItem>
                           </DropdownMenuContent>
                       </DropdownMenu>
@@ -344,8 +395,9 @@ export default function ProjectsPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      No projects found. Try a different filter or scan for projects.
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                      No projects found. Click "Scan for Projects" to discover projects on your local machine
+                      (Requires backend implementation) or try a different filter.
                     </TableCell>
                   </TableRow>
                 )}
@@ -362,4 +414,3 @@ export default function ProjectsPage() {
     </TooltipProvider>
   );
 }
-
