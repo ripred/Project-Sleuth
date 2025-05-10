@@ -291,32 +291,32 @@ export default function ProjectsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" disabled={!!isActionLoading}>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="left">
-                              <p>More actions for {project.name}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </DropdownMenuTrigger>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent side="left">
+                            <p>More actions for {project.name}</p>
+                          </TooltipContent>
+                        </Tooltip>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'view')} disabled={!!isActionLoading}>
                             <Eye className="mr-2 h-4 w-4" /> View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'analyze')} disabled={isActionLoading === `analyze-${project.id}`}>
+                          <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'analyze')} disabled={isActionLoading === `analyze-${project.id}` || !!isActionLoading && isActionLoading !== `analyze-${project.id}`}>
                             {isActionLoading === `analyze-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cpu className="mr-2 h-4 w-4" />}
                              Analyze (AI)
                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'tags')} disabled={isActionLoading === `tags-${project.id}`}>
+                           <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'tags')} disabled={isActionLoading === `tags-${project.id}` || !!isActionLoading && isActionLoading !== `tags-${project.id}`}>
                             {isActionLoading === `tags-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
                             Suggest Tags (AI)
                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'docs')} disabled={isActionLoading === `docs-${project.id}`}>
+                           <DropdownMenuItem onClick={() => handleProjectAction(project.id, 'docs')} disabled={isActionLoading === `docs-${project.id}` || !!isActionLoading && isActionLoading !== `docs-${project.id}`}>
                             {isActionLoading === `docs-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookOpen className="mr-2 h-4 w-4" />}
                             Fetch Docs (AI)
                           </DropdownMenuItem>
