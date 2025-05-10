@@ -18,11 +18,12 @@ import { suggestProjectTags } from '@/ai/flows/ai-tagging';
 import type { Project, ProjectSummaryOutput, FetchWebDocumentationOutput, SuggestProjectTagsOutput, AppSettings, EditorSetting } from '@/lib/types';
 import { mockProjects } from '@/lib/mock-data';
 import {
-  ArrowLeft, Info, FileCode, GitMerge, StickyNote, BookOpen, ExternalLink, Cpu, Tags, Rocket, PlayCircle, Eye, AlertCircle, Loader2, CalendarClock, Edit3, Settings2, CalendarIcon
+  ArrowLeft, Info, FileCode, GitMerge, StickyNote, BookOpen, ExternalLink, Cpu, Tags, Rocket, PlayCircle, Eye, AlertCircle, Loader2, CalendarClock, Edit3, Settings2, CalendarIcon, HelpCircle
 } from 'lucide-react';
 import Image from 'next/image';
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from "date-fns";
 import { cn } from '@/lib/utils';
 
@@ -218,245 +219,327 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <Button variant="outline" onClick={() => router.push('/projects')} className="mb-6">
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Projects
-      </Button>
+    <TooltipProvider>
+      <div className="space-y-6">
+        <Button variant="outline" onClick={() => router.push('/projects')} className="mb-6">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Projects
+        </Button>
 
-      <Card className="shadow-lg">
-        <CardHeader className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div>
-            <CardTitle className="text-3xl font-bold flex items-center">
-              {project.name}
-            </CardTitle>
-            <CardDescription className="text-lg text-muted-foreground">{project.path}</CardDescription>
-            {project.mainLanguage && <Badge variant="secondary" className="mt-2">{project.mainLanguage}</Badge>}
-          </div>
-          <div className="flex flex-col items-end">
-            <Button onClick={handleOpenEditor} variant="default" size="lg">
-              <ExternalLink className="mr-2 h-5 w-5" /> Open in Editor
-            </Button>
-            {configuredEditor && configuredEditor.name && (
-              <div className="mt-2 text-sm text-muted-foreground">
-                <Link href="/settings#editor-config" className="hover:text-primary hover:underline flex items-center gap-1">
-                  <Edit3 className="h-4 w-4" />
-                  Default: {configuredEditor.name}
-                </Link>
-              </div>
-            )}
-             {(!configuredEditor || !configuredEditor.name) && (
+        <Card className="shadow-lg">
+          <CardHeader className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div>
+              <CardTitle className="text-3xl font-bold flex items-center">
+                {project.name}
+              </CardTitle>
+              <CardDescription className="text-lg text-muted-foreground">{project.path}</CardDescription>
+              {project.mainLanguage && <Badge variant="secondary" className="mt-2">{project.mainLanguage}</Badge>}
+            </div>
+            <div className="flex flex-col items-end">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={handleOpenEditor} variant="default" size="lg">
+                    <ExternalLink className="mr-2 h-5 w-5" /> Open in Editor
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Opens this project in your configured default editor ({configuredEditor?.name || 'Not configured'}).</p>
+                  <p className="text-xs text-muted-foreground">This is simulated in the web demo.</p>
+                </TooltipContent>
+              </Tooltip>
+              {configuredEditor && configuredEditor.name && (
                 <div className="mt-2 text-sm text-muted-foreground">
-                    <Link href="/settings#editor-config" className="hover:text-primary hover:underline flex items-center gap-1">
-                        <Settings2 className="h-4 w-4" />
-                        Configure Default Editor
-                    </Link>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link href="/settings#editor-config" className="hover:text-primary hover:underline flex items-center gap-1">
+                        <Edit3 className="h-4 w-4" />
+                        Default: {configuredEditor.name}
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Click to configure project editors in Settings.</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p>{project.description || "No description available for this project."}</p>
-        </CardContent>
-      </Card>
+              )}
+              {(!configuredEditor || !configuredEditor.name) && (
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link href="/settings#editor-config" className="hover:text-primary hover:underline flex items-center gap-1">
+                            <Settings2 className="h-4 w-4" />
+                            Configure Default Editor
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>No default editor configured. Click to go to Settings.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p>{project.description || "No description available for this project."}</p>
+          </CardContent>
+        </Card>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
-          <TabsTrigger value="overview"><Info className="mr-1 h-4 w-4 sm:mr-2" />Overview</TabsTrigger>
-          <TabsTrigger value="files"><FileCode className="mr-1 h-4 w-4 sm:mr-2" />Files</TabsTrigger>
-          <TabsTrigger value="git"><GitMerge className="mr-1 h-4 w-4 sm:mr-2" />Git</TabsTrigger>
-          <TabsTrigger value="notes"><StickyNote className="mr-1 h-4 w-4 sm:mr-2" />Notes</TabsTrigger>
-          <TabsTrigger value="docs"><BookOpen className="mr-1 h-4 w-4 sm:mr-2" />Docs</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+            <TabsTrigger value="overview"><Info className="mr-1 h-4 w-4 sm:mr-2" />Overview</TabsTrigger>
+            <TabsTrigger value="files"><FileCode className="mr-1 h-4 w-4 sm:mr-2" />Files</TabsTrigger>
+            <TabsTrigger value="git"><GitMerge className="mr-1 h-4 w-4 sm:mr-2" />Git</TabsTrigger>
+            <TabsTrigger value="notes"><StickyNote className="mr-1 h-4 w-4 sm:mr-2" />Notes</TabsTrigger>
+            <TabsTrigger value="docs"><BookOpen className="mr-1 h-4 w-4 sm:mr-2" />Docs</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="overview" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Overview & AI Analysis</CardTitle>
-              <CardDescription>Details about the project, including AI-generated insights.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Project Details</h3>
-                  <div className="space-y-1">
-                    <p><strong>Size:</strong> {project.projectSize || 'N/A'}</p>
-                    <p><strong>Complexity:</strong> {project.complexity || 'N/A'}</p>
-                    <p><strong>Languages:</strong> {project.mainLanguage}{project.otherLanguages && project.otherLanguages.length > 0 ? `, ${project.otherLanguages.join(', ')}` : ''}</p>
-                    <p><strong>Last Scanned:</strong> {project.lastScanned ? new Date(project.lastScanned).toLocaleString() : 'N/A'}</p>
-                    <p><strong>Last Worked On:</strong> {project.lastWorkedOn ? new Date(project.lastWorkedOn).toLocaleString() : 'N/A'}</p>
-                    <div className="flex items-baseline space-x-2 mt-1">
-                      <p className="font-semibold whitespace-nowrap">Due Date:</p>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-[240px] justify-start text-left font-normal",
-                              !project.dueDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {project.dueDate ? format(project.dueDate, "PPP") : <span>Pick a date</span>}
+          <TabsContent value="overview" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Overview & AI Analysis</CardTitle>
+                <CardDescription>Details about the project, including AI-generated insights.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Project Details</h3>
+                    <div className="space-y-1">
+                      <p><strong>Size:</strong> {project.projectSize || 'N/A'}</p>
+                      <p><strong>Complexity:</strong> {project.complexity || 'N/A'}</p>
+                      <p><strong>Languages:</strong> {project.mainLanguage}{project.otherLanguages && project.otherLanguages.length > 0 ? `, ${project.otherLanguages.join(', ')}` : ''}</p>
+                      <p><strong>Last Scanned:</strong> {project.lastScanned ? new Date(project.lastScanned).toLocaleString() : 'N/A'}</p>
+                      <p><strong>Last Worked On:</strong> {project.lastWorkedOn ? new Date(project.lastWorkedOn).toLocaleString() : 'N/A'}</p>
+                      <div className="flex items-baseline space-x-2 mt-1">
+                        <p className="font-semibold whitespace-nowrap">Due Date:</p>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "w-[240px] justify-start text-left font-normal",
+                                    !project.dueDate && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {project.dueDate ? format(project.dueDate, "PPP") : <span>Pick a date</span>}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Select or change the project due date.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={project.dueDate}
+                              onSelect={handleDueDateChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">AI Actions</h3>
+                    <div className="space-y-2">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button onClick={handleAnalyze} disabled={isLoading === 'summary'} className="w-full justify-start">
+                            {isLoading === 'summary' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cpu className="mr-2 h-4 w-4" />}
+                            Generate AI Summary
                           </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={project.dueDate}
-                            onSelect={handleDueDateChange}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Uses AI to analyze project files and generate a summary of its purpose, completeness, technologies, and languages.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button onClick={handleSuggestTagsAI} disabled={isLoading === 'tags' || !project.aiSummary} className="w-full justify-start">
+                            {isLoading === 'tags' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
+                            Suggest AI Tags
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Suggests relevant tags based on the AI project summary. Requires AI summary to be generated first.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button onClick={handleFetchDocs} disabled={isLoading === 'docs' || !project.aiSummary?.technologies} className="w-full justify-start">
+                            {isLoading === 'docs' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookOpen className="mr-2 h-4 w-4" />}
+                            Fetch Web Documentation
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Searches the web for official documentation URLs for technologies identified in the AI summary. Requires AI summary first.</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">AI Actions</h3>
-                  <div className="space-y-2">
-                    <Button onClick={handleAnalyze} disabled={isLoading === 'summary'} className="w-full justify-start">
-                      {isLoading === 'summary' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cpu className="mr-2 h-4 w-4" />}
-                      Generate AI Summary
-                    </Button>
-                    <Button onClick={handleSuggestTagsAI} disabled={isLoading === 'tags' || !project.aiSummary} className="w-full justify-start">
-                      {isLoading === 'tags' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
-                      Suggest AI Tags
-                    </Button>
-                     <Button onClick={handleFetchDocs} disabled={isLoading === 'docs' || !project.aiSummary?.technologies} className="w-full justify-start">
-                      {isLoading === 'docs' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookOpen className="mr-2 h-4 w-4" />}
-                      Fetch Web Documentation
-                    </Button>
+                
+                {project.aiSummary && (
+                  <Card className="bg-muted/30 dark:bg-muted/50">
+                      <CardHeader>
+                          <CardTitle className="text-xl flex items-center"><Cpu className="mr-2 h-5 w-5 text-primary" />AI Generated Summary</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                          <p><strong>Purpose:</strong> {project.aiSummary.purpose}</p>
+                          <p><strong>Completeness:</strong> {project.aiSummary.completeness}</p>
+                          <p><strong>Technologies:</strong> {project.aiSummary.technologies}</p>
+                          <p><strong>Languages:</strong> {project.aiSummary.languages}</p>
+                      </CardContent>
+                  </Card>
+                )}
+                {project.aiTags && project.aiTags.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 flex items-center"><Tags className="mr-2 h-5 w-5 text-primary"/>Suggested AI Tags</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {project.aiTags.map(tag => <Badge key={tag} variant="outline">{tag}</Badge>)}
+                    </div>
                   </div>
-                </div>
-              </div>
-              
-              {project.aiSummary && (
-                <Card className="bg-muted/30 dark:bg-muted/50">
-                    <CardHeader>
-                        <CardTitle className="text-xl flex items-center"><Cpu className="mr-2 h-5 w-5 text-primary" />AI Generated Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        <p><strong>Purpose:</strong> {project.aiSummary.purpose}</p>
-                        <p><strong>Completeness:</strong> {project.aiSummary.completeness}</p>
-                        <p><strong>Technologies:</strong> {project.aiSummary.technologies}</p>
-                        <p><strong>Languages:</strong> {project.aiSummary.languages}</p>
-                    </CardContent>
-                </Card>
-              )}
-              {project.aiTags && project.aiTags.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-2 flex items-center"><Tags className="mr-2 h-5 w-5 text-primary"/>Suggested AI Tags</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {project.aiTags.map(tag => <Badge key={tag} variant="outline">{tag}</Badge>)}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="files" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>Project Files</CardTitle></CardHeader>
-            <CardContent>
-              <Alert>
-                <FileCode className="h-4 w-4" />
-                <AlertTitle>File Viewer</AlertTitle>
-                <AlertDescription>
-                  This area would display project contents (e.g., tree view). This functionality requires local file system access, typically available in a desktop application.
-                  <Image src="https://picsum.photos/seed/filetree/600/300" alt="Placeholder file tree" data-ai-hint="file tree" width={600} height={300} className="mt-4 rounded-md shadow-md" />
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="git" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>Git Integration</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              {project.gitData ? (
-                <div>
-                  <p><strong>Current Branch:</strong> {project.gitData.currentBranch || 'N/A'}</p>
-                  <p><strong>Last Commit:</strong> {project.gitData.lastCommit || 'N/A'}</p>
-                  <p><strong>Uncommitted Changes:</strong> {project.gitData.hasUncommittedChanges ? 'Yes' : 'No'}</p>
-                </div>
-              ) : (
-                <p>No Git data available for this project. It might not be a Git repository or hasn't been scanned for Git info.</p>
-              )}
-              <Separator />
-              <h3 className="text-md font-semibold">Common Git Operations:</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {["Add All & Commit", "Push", "Pull", "Fetch", "Stash", "Discard Changes"].map(action => (
-                    <Button key={action} variant="outline" onClick={() => handleGitAction(action.toLowerCase().replace(/\s+/g, '-'))}>
-                        {action}
-                    </Button>
-                ))}
-              </div>
-              <Alert variant="default" className="mt-4">
-                <Rocket className="h-4 w-4" />
-                <AlertTitle>Desktop Feature</AlertTitle>
-                <AlertDescription>
-                  Full Git integration requires local system access and Git CLI, typically part of a desktop application version of Project Sleuth. Operations here are simulated.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notes" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>Project Notes</CardTitle></CardHeader>
-            <CardContent>
-              <Textarea
-                placeholder="Write your notes about this project here..."
-                value={userNotes}
-                onChange={(e) => setUserNotes(e.target.value)}
-                rows={10}
-                className="mb-4"
-              />
-              <Button onClick={handleSaveNotes}>Save Notes</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="docs" className="mt-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center"><BookOpen className="mr-2 h-5 w-5 text-primary"/>Web Documentation</CardTitle>
-                    <CardDescription>AI-fetched documentation URLs for project technologies.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {(!project.aiDocumentationUrls || project.aiDocumentationUrls.length === 0) && !isLoading && (
-                        <Alert>
-                            <Info className="h-4 w-4" />
-                            <AlertTitle>No Documentation URLs</AlertTitle>
-                            <AlertDescription>
-                                No documentation URLs have been fetched for this project yet. Click the button below to try.
-                                Ensure project technologies are identified (run AI Summary first if needed).
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                    {project.aiDocumentationUrls && project.aiDocumentationUrls.length > 0 && (
-                        <ul className="space-y-2">
-                            {project.aiDocumentationUrls.map((url, index) => (
-                                <li key={index} className="flex items-center">
-                                    <Link href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">
-                                        <ExternalLink className="mr-2 h-4 w-4" /> {url}
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                     <Button onClick={handleFetchDocs} disabled={isLoading === 'docs' || !project.aiSummary?.technologies} className="mt-4">
-                      {isLoading === 'docs' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-                      Fetch/Refresh Documentation
-                    </Button>
-                </CardContent>
+                )}
+              </CardContent>
             </Card>
-        </TabsContent>
+          </TabsContent>
 
-      </Tabs>
-    </div>
+          <TabsContent value="files" className="mt-4">
+            <Card>
+              <CardHeader><CardTitle>Project Files</CardTitle></CardHeader>
+              <CardContent>
+                <Alert>
+                  <FileCode className="h-4 w-4" />
+                  <AlertTitle>File Viewer</AlertTitle>
+                  <AlertDescription>
+                    This area would display project contents (e.g., tree view). This functionality requires local file system access, typically available in a desktop application.
+                    <Image src="https://picsum.photos/seed/filetree/600/300" alt="Placeholder file tree" data-ai-hint="file tree" width={600} height={300} className="mt-4 rounded-md shadow-md" />
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="git" className="mt-4">
+            <Card>
+              <CardHeader><CardTitle>Git Integration</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                {project.gitData ? (
+                  <div>
+                    <p><strong>Current Branch:</strong> {project.gitData.currentBranch || 'N/A'}</p>
+                    <p><strong>Last Commit:</strong> {project.gitData.lastCommit || 'N/A'}</p>
+                    <p><strong>Uncommitted Changes:</strong> {project.gitData.hasUncommittedChanges ? 'Yes' : 'No'}</p>
+                  </div>
+                ) : (
+                  <p>No Git data available for this project. It might not be a Git repository or hasn't been scanned for Git info.</p>
+                )}
+                <Separator />
+                <h3 className="text-md font-semibold">Common Git Operations:</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {["Add All & Commit", "Push", "Pull", "Fetch", "Stash", "Discard Changes"].map(action => (
+                    <Tooltip key={action}>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" onClick={() => handleGitAction(action.toLowerCase().replace(/\s+/g, '-'))}>
+                            {action}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Simulates 'git {action.toLowerCase()}' command. Requires desktop app for real execution.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+                <Alert variant="default" className="mt-4">
+                  <Rocket className="h-4 w-4" />
+                  <AlertTitle>Desktop Feature</AlertTitle>
+                  <AlertDescription>
+                    Full Git integration requires local system access and Git CLI, typically part of a desktop application version of Project Sleuth. Operations here are simulated.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="notes" className="mt-4">
+            <Card>
+              <CardHeader><CardTitle>Project Notes</CardTitle></CardHeader>
+              <CardContent>
+                <Textarea
+                  placeholder="Write your notes about this project here..."
+                  value={userNotes}
+                  onChange={(e) => setUserNotes(e.target.value)}
+                  rows={10}
+                  className="mb-4"
+                />
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button onClick={handleSaveNotes}>Save Notes</Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Save your notes for this project (simulated persistence for demo).</p>
+                    </TooltipContent>
+                </Tooltip>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="docs" className="mt-4">
+              <Card>
+                  <CardHeader>
+                      <CardTitle className="flex items-center"><BookOpen className="mr-2 h-5 w-5 text-primary"/>Web Documentation</CardTitle>
+                      <CardDescription>AI-fetched documentation URLs for project technologies.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      {(!project.aiDocumentationUrls || project.aiDocumentationUrls.length === 0) && !isLoading && (
+                          <Alert>
+                              <Info className="h-4 w-4" />
+                              <AlertTitle>No Documentation URLs</AlertTitle>
+                              <AlertDescription>
+                                  No documentation URLs have been fetched for this project yet. Click the button below to try.
+                                  Ensure project technologies are identified (run AI Summary first if needed).
+                              </AlertDescription>
+                          </Alert>
+                      )}
+                      {project.aiDocumentationUrls && project.aiDocumentationUrls.length > 0 && (
+                          <ul className="space-y-2">
+                              {project.aiDocumentationUrls.map((url, index) => (
+                                  <li key={index} className="flex items-center">
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Link href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">
+                                            <ExternalLink className="mr-2 h-4 w-4" /> {url}
+                                        </Link>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Opens documentation link in a new tab: {url}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </li>
+                              ))}
+                          </ul>
+                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button onClick={handleFetchDocs} disabled={isLoading === 'docs' || !project.aiSummary?.technologies} className="mt-4">
+                            {isLoading === 'docs' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
+                            Fetch/Refresh Documentation
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Use AI to find or update documentation links for the project's technologies.</p>
+                          {!project.aiSummary?.technologies && <p className="text-destructive-foreground">Requires AI Summary to be generated first.</p>}
+                        </TooltipContent>
+                      </Tooltip>
+                  </CardContent>
+              </Card>
+          </TabsContent>
+
+        </Tabs>
+      </div>
+    </TooltipProvider>
   );
 }
+
