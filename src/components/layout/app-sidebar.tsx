@@ -56,9 +56,9 @@ export function AppSidebar() {
                 <Link href={item.href} passHref>
                   <div>
                     <item.icon className="h-5 w-5" />
-                    <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
                   </div>
-                </SidebarMenuButton>
+                    <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                </Link>
               </Link>
             </SidebarMenuItem>
           ))}
