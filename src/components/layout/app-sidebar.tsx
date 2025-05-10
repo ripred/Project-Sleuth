@@ -45,16 +45,18 @@ export function AppSidebar() {
         <SidebarMenu>
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-              <Link href={item.href} passHref>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))}
-                  tooltip={{ children: item.label, side: "right", className: "ml-2" }}
-                  className={cn(
-                    "group-data-[collapsible=icon]:justify-center"
-                  )}
-                >
+              <SidebarMenuButton
+ asChild
+ isActive={pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))}
+ tooltip={{ children: item.label, side: "right", className: "ml-2" }}
+ className={cn(
+ "group-data-[collapsible=icon]:justify-center"
+ )}
+ >
+                <Link href={item.href} passHref>
+                  <div>
                   <item.icon className="h-5 w-5" />
+
                   <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
                 </SidebarMenuButton>
               </Link>
