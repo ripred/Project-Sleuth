@@ -55,7 +55,7 @@ export function AppSidebar() {
               >
                 <Link href={item.href} passHref>
 
-                  <div>
+                  <div className="flex items-center py-2">
                     <item.icon className="h-5 w-5" />
                     <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
                   </div>
