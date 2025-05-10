@@ -183,179 +183,182 @@ export default function ProjectsPage() {
 
   return (
     <TooltipProvider>
-    <div className="space-y-6">
-      <Card className="shadow-lg">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <CardTitle className="text-3xl font-bold flex items-center">
-                <FolderKanban className="mr-3 h-8 w-8 text-primary" />
-                Projects
-              </CardTitle>
-              <CardDescription>Discover, manage, and analyze your software projects.</CardDescription>
+      <div className="space-y-6">
+        <Card className="shadow-lg">
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <CardTitle className="text-3xl font-bold flex items-center">
+                  <FolderKanban className="mr-3 h-8 w-8 text-primary" />
+                  Projects
+                </CardTitle>
+                <CardDescription>Discover, manage, and analyze your software projects.</CardDescription>
+              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={handleScanProjects} disabled={isLoadingScan}>
+                    {isLoadingScan ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                    {isLoadingScan ? "Scanning..." : "Scan for Projects"}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Simulate scanning local drives for new or updated projects.</p>
+                  <p className="text-xs text-muted-foreground">(Full functionality in desktop app)</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button onClick={handleScanProjects} disabled={isLoadingScan}>
-                  {isLoadingScan ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                  {isLoadingScan ? "Scanning..." : "Scan for Projects"}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Simulate scanning local drives for new or updated projects.</p>
-                <p className="text-xs text-muted-foreground">(Full functionality in desktop app)</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Project Sleuth can recursively scan your local drives for project folders based on criteria like .git folders, AI residue files, and common source file extensions.
-            Currently, this feature is simulated for web demo purposes.
-          </p>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Project Sleuth can recursively scan your local drives for project folders based on criteria like .git folders, AI residue files, and common source file extensions.
+              Currently, this feature is simulated for web demo purposes.
+            </p>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <Input
-              placeholder="Filter projects by name, path, or language..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
-            <div className="flex gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline">
-                    <ListFilter className="mr-2 h-4 w-4" />
-                    Filters
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Advanced filtering options (Not yet implemented).</p>
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Project Manually
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Manually add a project to Project Sleuth (Not yet implemented).</p>
-                </TooltipContent>
-              </Tooltip>
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <Input
+                placeholder="Filter projects by name, path, or language..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-sm"
+              />
+              <div className="flex gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline">
+                      <ListFilter className="mr-2 h-4 w-4" />
+                      Filters
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Advanced filtering options (Not yet implemented).</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button>
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Add Project Manually
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Manually add a project to Project Sleuth (Not yet implemented).</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px] hidden sm:table-cell"></TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden md:table-cell">Path</TableHead>
-                <TableHead className="hidden lg:table-cell">Language</TableHead>
-                <TableHead className="hidden lg:table-cell">Last Scanned</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProjects.length > 0 ? (
-                filteredProjects.map((project) => (
-                  <TableRow 
-                    key={project.id} 
-                    onClick={() => router.push(`/projects/${project.id}`)}
-                    className="cursor-pointer"
-                  >
-                    <TableCell className="hidden sm:table-cell">
-                      <Tooltip>
-                        <TooltipTrigger onClick={(e) => e.stopPropagation()}>
-                           <LanguageIcon lang={project.mainLanguage} />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{project.mainLanguage || "Unknown Language"}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium text-primary hover:underline">
-                        <Link href={`/projects/${project.id}`} onClick={(e) => e.stopPropagation()}>
-                            {project.name}
-                        </Link>
-                      </div>
-                      <div className="block sm:hidden text-xs text-muted-foreground">{project.path}</div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{project.path}</TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {project.mainLanguage && <Badge variant="secondary">{project.mainLanguage}</Badge>}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
-                      {project.lastScanned ? new Date(project.lastScanned).toLocaleDateString() : 'N/A'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                    <DropdownMenu>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50px] hidden sm:table-cell"></TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="hidden md:table-cell">Path</TableHead>
+                  <TableHead className="hidden lg:table-cell">Language</TableHead>
+                  <TableHead className="hidden lg:table-cell">Last Scanned</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProjects.length > 0 ? (
+                  filteredProjects.map((project) => (
+                    <TableRow 
+                      key={project.id} 
+                      onClick={() => router.push(`/projects/${project.id}`)}
+                      className="cursor-pointer"
+                    >
+                      <TableCell className="hidden sm:table-cell">
                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" disabled={!!isActionLoading} onClick={(e) => e.stopPropagation()}>
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent side="left">
-                                <p>More actions for {project.name}</p>
-                            </TooltipContent>
+                          <TooltipTrigger onClick={(e) => e.stopPropagation()}>
+                             <LanguageIcon lang={project.mainLanguage} />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{project.mainLanguage || "Unknown Language"}</p>
+                          </TooltipContent>
                         </Tooltip>
-                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'view', e)} disabled={!!isActionLoading}>
-                                <Eye className="mr-2 h-4 w-4" /> View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'analyze', e)} disabled={isActionLoading === `analyze-${project.id}` || (!!isActionLoading && isActionLoading !== `analyze-${project.id}`)}>
-                                {isActionLoading === `analyze-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cpu className="mr-2 h-4 w-4" />}
-                                Analyze (AI)
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'tags', e)} disabled={isActionLoading === `tags-${project.id}` || (!!isActionLoading && isActionLoading !== `tags-${project.id}`)}>
-                                {isActionLoading === `tags-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
-                                Suggest Tags (AI)
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'docs', e)} disabled={isActionLoading === `docs-${project.id}` || (!!isActionLoading && isActionLoading !== `docs-${project.id}`)}>
-                                {isActionLoading === `docs-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookOpen className="mr-2 h-4 w-4" />}
-                                Fetch Docs (AI)
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'open', e)} disabled={!!isActionLoading}>
-                                <ExternalLink className="mr-2 h-4 w-4" /> Open in Editor
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive" onClick={(e) => handleProjectAction(project.id, 'delete', e)} disabled={!!isActionLoading}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete Project
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-primary hover:underline">
+                          <Link
+                            href={`/projects/${project.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            legacyBehavior>
+                              {project.name}
+                          </Link>
+                        </div>
+                        <div className="block sm:hidden text-xs text-muted-foreground">{project.path}</div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{project.path}</TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {project.mainLanguage && <Badge variant="secondary">{project.mainLanguage}</Badge>}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                        {project.lastScanned ? new Date(project.lastScanned).toLocaleDateString() : 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                      <DropdownMenu>
+                          <Tooltip>
+                              <TooltipTrigger asChild>
+                                  <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" disabled={!!isActionLoading} onClick={(e) => e.stopPropagation()}>
+                                          <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                  </DropdownMenuTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent side="left">
+                                  <p>More actions for {project.name}</p>
+                              </TooltipContent>
+                          </Tooltip>
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'view', e)} disabled={!!isActionLoading}>
+                                  <Eye className="mr-2 h-4 w-4" /> View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'analyze', e)} disabled={isActionLoading === `analyze-${project.id}` || (!!isActionLoading && isActionLoading !== `analyze-${project.id}`)}>
+                                  {isActionLoading === `analyze-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cpu className="mr-2 h-4 w-4" />}
+                                  Analyze (AI)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'tags', e)} disabled={isActionLoading === `tags-${project.id}` || (!!isActionLoading && isActionLoading !== `tags-${project.id}`)}>
+                                  {isActionLoading === `tags-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
+                                  Suggest Tags (AI)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'docs', e)} disabled={isActionLoading === `docs-${project.id}` || (!!isActionLoading && isActionLoading !== `docs-${project.id}`)}>
+                                  {isActionLoading === `docs-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookOpen className="mr-2 h-4 w-4" />}
+                                  Fetch Docs (AI)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'open', e)} disabled={!!isActionLoading}>
+                                  <ExternalLink className="mr-2 h-4 w-4" /> Open in Editor
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive" onClick={(e) => handleProjectAction(project.id, 'delete', e)} disabled={!!isActionLoading}>
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete Project
+                              </DropdownMenuItem>
+                          </DropdownMenuContent>
+                      </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                      No projects found. Try a different filter or scan for projects.
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
-                    No projects found. Try a different filter or scan for projects.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-        <CardFooter>
-          <div className="text-xs text-muted-foreground">
-            Showing <strong>{filteredProjects.length}</strong> of <strong>{projects.length}</strong> projects.
-          </div>
-        </CardFooter>
-      </Card>
-    </div>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+          <CardFooter>
+            <div className="text-xs text-muted-foreground">
+              Showing <strong>{filteredProjects.length}</strong> of <strong>{projects.length}</strong> projects.
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
     </TooltipProvider>
   );
 }

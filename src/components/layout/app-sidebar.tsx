@@ -30,7 +30,10 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
-        <Link href="/" className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
+        <Link
+          href="/"
+          className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center"
+          legacyBehavior>
           <div>
             <Briefcase className="h-7 w-7 text-primary group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
             <span className="text-xl font-semibold group-data-[collapsible=icon]:hidden">Project Sleuth</span>
@@ -71,5 +74,5 @@ export function AppSidebar() {
         </div>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

@@ -264,16 +264,16 @@ export default function ProjectDetailPage() {
 
   if (!project) {
     return (
-        <div className="flex flex-col items-center justify-center h-full">
-            <AlertCircle className="w-16 h-16 text-destructive mb-4" />
-            <h2 className="text-2xl font-semibold mb-2">Project Not Found</h2>
-            <p className="text-muted-foreground mb-4">The project you are looking for does not exist or could not be loaded.</p>
-            <Button asChild>
-                <Link href="/projects">
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Go Back to Projects
-                </Link>
-            </Button>
-        </div>
+      <div className="flex flex-col items-center justify-center h-full">
+        <AlertCircle className="w-16 h-16 text-destructive mb-4" />
+        <h2 className="text-2xl font-semibold mb-2">Project Not Found</h2>
+        <p className="text-muted-foreground mb-4">The project you are looking for does not exist or could not be loaded.</p>
+        <Button asChild>
+            <Link href="/projects" legacyBehavior>
+                <ArrowLeft className="mr-2 h-4 w-4" /> Go Back to Projects
+            </Link>
+        </Button>
+      </div>
     );
   }
 
@@ -335,7 +335,10 @@ export default function ProjectDetailPage() {
                 <div className="mt-2 text-sm text-muted-foreground">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Link href="/settings#editor-config" className="hover:text-primary hover:underline flex items-center gap-1">
+                      <Link
+                        href="/settings#editor-config"
+                        className="hover:text-primary hover:underline flex items-center gap-1"
+                        legacyBehavior>
                         <Edit3 className="h-4 w-4" />
                         Default: {configuredEditor.name}
                       </Link>
@@ -350,7 +353,10 @@ export default function ProjectDetailPage() {
                   <div className="mt-2 text-sm text-muted-foreground">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Link href="/settings#editor-config" className="hover:text-primary hover:underline flex items-center gap-1">
+                        <Link
+                          href="/settings#editor-config"
+                          className="hover:text-primary hover:underline flex items-center gap-1"
+                          legacyBehavior>
                             <Settings2 className="h-4 w-4" />
                             Configure Default Editor
                         </Link>
@@ -681,7 +687,12 @@ export default function ProjectDetailPage() {
                                   <li key={index} className="flex items-center">
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <Link href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center">
+                                        <Link
+                                          href={url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-primary hover:underline flex items-center"
+                                          legacyBehavior>
                                             <ExternalLink className="mr-2 h-4 w-4" /> {url}
                                         </Link>
                                       </TooltipTrigger>

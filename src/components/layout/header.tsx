@@ -53,7 +53,7 @@ export function Header() {
                       <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
                     ) : (
                       <BreadcrumbLink asChild>
-                        <Link href={breadcrumb.href}>{breadcrumb.label}</Link>
+                        <Link href={breadcrumb.href} legacyBehavior>{breadcrumb.label}</Link>
                       </BreadcrumbLink>
                     )}
                   </BreadcrumbItem>
@@ -67,6 +67,6 @@ export function Header() {
         <ThemeToggle />
       </div>
     </header>
-  )
+  );
 }
 
