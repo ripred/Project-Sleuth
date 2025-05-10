@@ -76,7 +76,7 @@ export default function DashboardPage() {
                 <TooltipTrigger asChild>
                   <Button variant="outline" asChild>
                     <Link href={action.href} legacyBehavior>
-                      <action.icon className="mr-2 h-4 w-4" />
+ <action.icon className="mr-2 h-4 w-4" />
                       {action.label}
                     </Link>
                   </Button>

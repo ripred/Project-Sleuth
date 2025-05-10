@@ -33,8 +33,7 @@ export function AppSidebar() {
         <Link
           href="/"
           className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center"
-          legacyBehavior>
-          <div>
+        >
             <Briefcase className="h-7 w-7 text-primary group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
             <span className="text-xl font-semibold group-data-[collapsible=icon]:hidden">Project Sleuth</span>
           </div>
@@ -54,10 +53,8 @@ export function AppSidebar() {
                     "group-data-[collapsible=icon]:justify-center"
                   )}
                 >
-                  <a> {/* Using <a> tag because asChild is true with Link */}
-                    <item.icon className="h-5 w-5" />
-                    <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
-                  </a>
+                  <item.icon className="h-5 w-5" />
+                  <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
