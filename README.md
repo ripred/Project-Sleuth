@@ -1,7 +1,7 @@
-# Project Sleuth
-
-**Project Sleuth: Your Intelligent Assistant for Project Discovery, Analysis, and Management.**
-
+<p align="center">
+  <img src="Project-Sleuth-App-Icon.png" alt="Project Sleuth App Icon" width="150"/>
+</p>
+<p align="center"><b>Project Sleuth: Your Intelligent Assistant for Project Discovery, Analysis, and Management.</b></p>
 Project Sleuth is a powerful Next.js application designed to help developers and teams efficiently manage and understand their software projects. It scans your local environment to discover projects, analyzes them using AI, integrates with Git, and provides a suite of tools to streamline your development workflow.
 
 ## Overview
