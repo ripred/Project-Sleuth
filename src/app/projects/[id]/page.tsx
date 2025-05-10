@@ -18,9 +18,13 @@ import { suggestProjectTags } from '@/ai/flows/ai-tagging';
 import type { Project, ProjectSummaryOutput, FetchWebDocumentationOutput, SuggestProjectTagsOutput, AppSettings, EditorSetting } from '@/lib/types';
 import { mockProjects } from '@/lib/mock-data';
 import {
-  ArrowLeft, Info, FileCode, GitMerge, StickyNote, BookOpen, ExternalLink, Cpu, Tags, Rocket, PlayCircle, Eye, AlertCircle, Loader2, CalendarClock, Edit3, Settings2
+  ArrowLeft, Info, FileCode, GitMerge, StickyNote, BookOpen, ExternalLink, Cpu, Tags, Rocket, PlayCircle, Eye, AlertCircle, Loader2, CalendarClock, Edit3, Settings2, CalendarIcon
 } from 'lucide-react';
 import Image from 'next/image';
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from '@/lib/utils';
 
 // Mock server actions (replace with actual server actions later)
 async function handleAnalyzeProjectServer(projectPath: string, fileContents: string): Promise<ProjectSummaryOutput> {
@@ -80,8 +84,17 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     if (id) {
       const foundProject = mockProjects.find(p => p.id === id);
-      setProject(foundProject || null);
-      setUserNotes(foundProject?.userNotes || "");
+       if (foundProject) {
+        // Ensure dueDate is a Date object if it's a string (it should be Date from mockData)
+        const processedProject = {
+            ...foundProject,
+            dueDate: foundProject.dueDate ? new Date(foundProject.dueDate) : undefined,
+        };
+        setProject(processedProject);
+        setUserNotes(processedProject.userNotes || "");
+      } else {
+        setProject(null);
+      }
     }
     // Load editor settings from localStorage
     const storedSettings = localStorage.getItem('appSettings');
@@ -160,6 +173,26 @@ export default function ProjectDetailPage() {
       toast({ title: `Git Action: ${action}`, description: `Simulating Git ${action} operation. This would interact with local Git CLI in a desktop app.` });
   }
 
+  const handleDueDateChange = (date: Date | undefined) => {
+    if (!project) return;
+
+    setProject(prev => {
+      if (!prev) return null;
+      return { ...prev, dueDate: date };
+    });
+
+    const projectIndex = mockProjects.findIndex(p => p.id === project.id);
+    if (projectIndex !== -1) {
+      mockProjects[projectIndex].dueDate = date;
+    }
+
+    if (date) {
+      toast({ title: "Due Date Updated", description: `Due date set to ${format(date, "PPP")}.` });
+    } else {
+      toast({ title: "Due Date Cleared" });
+    }
+  };
+
 
   if (!project) {
     return (
@@ -237,12 +270,38 @@ export default function ProjectDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Project Details</h3>
-                  <p><strong>Size:</strong> {project.projectSize || 'N/A'}</p>
-                  <p><strong>Complexity:</strong> {project.complexity || 'N/A'}</p>
-                  <p><strong>Languages:</strong> {project.mainLanguage}{project.otherLanguages && project.otherLanguages.length > 0 ? `, ${project.otherLanguages.join(', ')}` : ''}</p>
-                  <p><strong>Last Scanned:</strong> {project.lastScanned ? new Date(project.lastScanned).toLocaleString() : 'N/A'}</p>
-                  <p><strong>Last Worked On:</strong> {project.lastWorkedOn ? new Date(project.lastWorkedOn).toLocaleString() : 'N/A'}</p>
-                  <p><strong>Due Date:</strong> {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'N/A'}</p>
+                  <div className="space-y-1">
+                    <p><strong>Size:</strong> {project.projectSize || 'N/A'}</p>
+                    <p><strong>Complexity:</strong> {project.complexity || 'N/A'}</p>
+                    <p><strong>Languages:</strong> {project.mainLanguage}{project.otherLanguages && project.otherLanguages.length > 0 ? `, ${project.otherLanguages.join(', ')}` : ''}</p>
+                    <p><strong>Last Scanned:</strong> {project.lastScanned ? new Date(project.lastScanned).toLocaleString() : 'N/A'}</p>
+                    <p><strong>Last Worked On:</strong> {project.lastWorkedOn ? new Date(project.lastWorkedOn).toLocaleString() : 'N/A'}</p>
+                    <div className="flex items-baseline space-x-2 mt-1">
+                      <p className="font-semibold whitespace-nowrap">Due Date:</p>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-[240px] justify-start text-left font-normal",
+                              !project.dueDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {project.dueDate ? format(project.dueDate, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={project.dueDate}
+                            onSelect={handleDueDateChange}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-2">AI Actions</h3>
@@ -393,3 +452,4 @@ export default function ProjectDetailPage() {
     </div>
   );
 }
+
