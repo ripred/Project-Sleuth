@@ -71,7 +71,7 @@ async function handleSuggestTagsServer(projectDescription: string, fileList: str
 export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const id = params ? params.id as string : undefined;
   const [project, setProject] = useState<Project | null>(null);
   const [userNotes, setUserNotes] = useState<string>("");
   const [isLoading, setIsLoading] = useState<'summary' | 'docs' | 'tags' | null>(null);
@@ -211,6 +211,7 @@ export default function ProjectDetailPage() {
                   <p><strong>Languages:</strong> {project.mainLanguage}{project.otherLanguages && project.otherLanguages.length > 0 ? `, ${project.otherLanguages.join(', ')}` : ''}</p>
                   <p><strong>Last Scanned:</strong> {project.lastScanned ? new Date(project.lastScanned).toLocaleString() : 'N/A'}</p>
                   <p><strong>Last Worked On:</strong> {project.lastWorkedOn ? new Date(project.lastWorkedOn).toLocaleString() : 'N/A'}</p>
+                  <p><strong>Due Date:</strong> {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'N/A'}</p>
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-2">AI Actions</h3>

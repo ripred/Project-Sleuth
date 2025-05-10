@@ -13,6 +13,7 @@ export const mockProjects: Project[] = [
     complexity: "High",
     lastScanned: new Date("2024-07-28T10:00:00Z"),
     lastWorkedOn: new Date("2024-07-28T18:30:00Z"),
+    dueDate: new Date("2024-08-31T23:59:59Z"),
     gitData: {
       currentBranch: "main",
       lastCommit: "feat: initial dashboard setup",
@@ -42,6 +43,7 @@ export const mockProjects: Project[] = [
     complexity: "High",
     lastScanned: new Date("2024-07-27T14:30:00Z"),
     lastWorkedOn: new Date("2024-07-26T10:15:00Z"),
+    // No dueDate for this project to demonstrate optional display
     gitData: {
       currentBranch: "release/2.3.1",
       lastCommit: "fix: memory leak in caching module",
@@ -67,7 +69,8 @@ export const mockProjects: Project[] = [
     projectSize: "Small",
     complexity: "Low",
     lastScanned: new Date("2024-07-28T09:15:00Z"),
-    // lastWorkedOn: undefined, // Example of a project without this date
+    lastWorkedOn: new Date("2024-07-29T11:00:00Z"),
+    dueDate: new Date("2024-09-15T23:59:59Z"),
     gitData: {
       currentBranch: "feat/new-theme",
       hasUncommittedChanges: false
@@ -87,6 +90,7 @@ export const mockProjects: Project[] = [
     complexity: "Medium",
     lastScanned: new Date("2024-07-25T18:00:00Z"),
     lastWorkedOn: new Date("2024-07-25T17:00:00Z"),
+    // No due date
     gitData: {
         currentBranch: "main",
         hasUncommittedChanges: true,

@@ -9,8 +9,9 @@ export interface Project {
   path: string;
   description?: string; // User-added or auto-generated
   lastScanned?: Date;
-  lastWorkedOn?: Date; // New field
-  
+  lastWorkedOn?: Date; 
+  dueDate?: Date; // New field for due date
+
   // AI Generated fields
   aiSummary?: ProjectSummaryOutput;
   aiTags?: SuggestProjectTagsOutput["tags"];
