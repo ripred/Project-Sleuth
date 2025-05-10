@@ -282,7 +282,11 @@ export default function ProjectsPage() {
                       </Tooltip>
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium text-primary">{project.name}</div>
+                      <div className="font-medium text-primary hover:underline">
+                        <Link href={`/projects/${project.id}`} onClick={(e) => e.stopPropagation()}>
+                            {project.name}
+                        </Link>
+                      </div>
                       <div className="block sm:hidden text-xs text-muted-foreground">{project.path}</div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{project.path}</TableCell>
@@ -293,43 +297,45 @@ export default function ProjectsPage() {
                       {project.lastScanned ? new Date(project.lastScanned).toLocaleDateString() : 'N/A'}
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
+                    <DropdownMenu>
                         <Tooltip>
-                          <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" disabled={!!isActionLoading}>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="left">
-                            <p>More actions for {project.name}</p>
-                          </TooltipContent>
+                            <TooltipTrigger asChild>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" disabled={!!isActionLoading} onClick={(e) => e.stopPropagation()}>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent side="left">
+                                <p>More actions for {project.name}</p>
+                            </TooltipContent>
                         </Tooltip>
                         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'view', e)} disabled={!!isActionLoading}>
-                            <Eye className="mr-2 h-4 w-4" /> View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'analyze', e)} disabled={isActionLoading === `analyze-${project.id}` || !!isActionLoading && isActionLoading !== `analyze-${project.id}`}>
-                            {isActionLoading === `analyze-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cpu className="mr-2 h-4 w-4" />}
-                             Analyze (AI)
-                          </DropdownMenuItem>
-                           <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'tags', e)} disabled={isActionLoading === `tags-${project.id}` || !!isActionLoading && isActionLoading !== `tags-${project.id}`}>
-                            {isActionLoading === `tags-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
-                            Suggest Tags (AI)
-                          </DropdownMenuItem>
-                           <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'docs', e)} disabled={isActionLoading === `docs-${project.id}` || !!isActionLoading && isActionLoading !== `docs-${project.id}`}>
-                            {isActionLoading === `docs-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookOpen className="mr-2 h-4 w-4" />}
-                            Fetch Docs (AI)
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'open', e)} disabled={!!isActionLoading}>
-                            <ExternalLink className="mr-2 h-4 w-4" /> Open in Editor
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive" onClick={(e) => handleProjectAction(project.id, 'delete', e)} disabled={!!isActionLoading}>
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete Project
-                          </DropdownMenuItem>
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'view', e)} disabled={!!isActionLoading}>
+                                <Eye className="mr-2 h-4 w-4" /> View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'analyze', e)} disabled={isActionLoading === `analyze-${project.id}` || (!!isActionLoading && isActionLoading !== `analyze-${project.id}`)}>
+                                {isActionLoading === `analyze-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Cpu className="mr-2 h-4 w-4" />}
+                                Analyze (AI)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'tags', e)} disabled={isActionLoading === `tags-${project.id}` || (!!isActionLoading && isActionLoading !== `tags-${project.id}`)}>
+                                {isActionLoading === `tags-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
+                                Suggest Tags (AI)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'docs', e)} disabled={isActionLoading === `docs-${project.id}` || (!!isActionLoading && isActionLoading !== `docs-${project.id}`)}>
+                                {isActionLoading === `docs-${project.id}` ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookOpen className="mr-2 h-4 w-4" />}
+                                Fetch Docs (AI)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => handleProjectAction(project.id, 'open', e)} disabled={!!isActionLoading}>
+                                <ExternalLink className="mr-2 h-4 w-4" /> Open in Editor
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={(e) => handleProjectAction(project.id, 'delete', e)} disabled={!!isActionLoading}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete Project
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
-                      </DropdownMenu>
+                    </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))
