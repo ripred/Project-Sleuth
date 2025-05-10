@@ -113,8 +113,9 @@ export const mockSettings: AppSettings = {
         { id: "openAI", name: "OpenAI API Key", key: "" },
     ],
     defaultScanPaths: ["/Users/dev/apps", "/Users/dev/work", "/Users/dev/personal"],
-    defaultEditor: {
-        name: "Visual Studio Code",
-        path: "code" // Command to launch VS Code
-    }
+    editors: [
+        { id: "vscode", name: "Visual Studio Code", path: "code" },
+        { id: "intellij", name: "IntelliJ IDEA", path: "idea" }
+    ],
+    defaultEditorId: "vscode"
 };

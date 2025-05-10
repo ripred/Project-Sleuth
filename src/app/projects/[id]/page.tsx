@@ -101,7 +101,15 @@ export default function ProjectDetailPage() {
     if (storedSettings) {
       try {
         const appSettings: AppSettings = JSON.parse(storedSettings);
-        setConfiguredEditor(appSettings.defaultEditor || null);
+        if (appSettings.defaultEditorId && appSettings.editors && appSettings.editors.length > 0) {
+          const defaultEditor = appSettings.editors.find(editor => editor.id === appSettings.defaultEditorId);
+          setConfiguredEditor(defaultEditor || appSettings.editors[0]); // Fallback to first editor if default not found
+        } else if (appSettings.editors && appSettings.editors.length > 0) {
+           setConfiguredEditor(appSettings.editors[0]); // Fallback to first editor if no default ID
+        }
+         else {
+          setConfiguredEditor(null);
+        }
       } catch (error) {
         console.error("Failed to parse appSettings from localStorage", error);
         setConfiguredEditor(null);
@@ -232,15 +240,15 @@ export default function ProjectDetailPage() {
               <div className="mt-2 text-sm text-muted-foreground">
                 <Link href="/settings#editor-config" className="hover:text-primary hover:underline flex items-center gap-1">
                   <Edit3 className="h-4 w-4" />
-                  {configuredEditor.name}
+                  Default: {configuredEditor.name}
                 </Link>
               </div>
             )}
-             {!configuredEditor?.name && (
+             {(!configuredEditor || !configuredEditor.name) && (
                 <div className="mt-2 text-sm text-muted-foreground">
                     <Link href="/settings#editor-config" className="hover:text-primary hover:underline flex items-center gap-1">
                         <Settings2 className="h-4 w-4" />
-                        Configure Editor
+                        Configure Default Editor
                     </Link>
                 </div>
             )}
@@ -452,4 +460,3 @@ export default function ProjectDetailPage() {
     </div>
   );
 }
-

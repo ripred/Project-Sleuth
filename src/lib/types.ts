@@ -48,6 +48,7 @@ export interface ApiKeySetting {
 }
 
 export interface EditorSetting {
+  id: string; // Unique identifier for the editor
   name: string;
   path?: string; // Optional path/command
   icon?: string; // Optional: name of a Lucide icon or path to an SVG
@@ -56,9 +57,9 @@ export interface EditorSetting {
 export interface AppSettings {
   apiKeys: ApiKeySetting[];
   defaultScanPaths: string[];
-  defaultEditor?: EditorSetting;
+  editors: EditorSetting[];
+  defaultEditorId?: string; // ID of the default editor from the editors array
   // Add other app-wide settings here
-  // e.g. defaultEditorPath: string;
 }
 
 // Example of specific project settings (if needed, stored per project)

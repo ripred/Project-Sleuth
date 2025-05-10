@@ -8,35 +8,36 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { toast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, KeyRound, FolderOpen, Save, Trash2, PlusCircle, Edit3 } from 'lucide-react';
+import { Settings as SettingsIcon, KeyRound, FolderOpen, Save, Trash2, PlusCircle, Edit3, Star } from 'lucide-react';
 import type { AppSettings, ApiKeySetting, EditorSetting } from '@/lib/types';
-import { mockSettings } from '@/lib/mock-data'; // Using mock data for now
+import { mockSettings } from '@/lib/mock-data'; 
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings>(mockSettings);
   const [newApiKeyName, setNewApiKeyName] = useState('');
   const [newApiKey, setNewApiKey] = useState('');
   const [newScanPath, setNewScanPath] = useState('');
-  const [editorName, setEditorName] = useState(mockSettings.defaultEditor?.name || '');
-  const [editorPath, setEditorPath] = useState(mockSettings.defaultEditor?.path || '');
+  
+  const [newEditorName, setNewEditorName] = useState('');
+  const [newEditorPath, setNewEditorPath] = useState('');
 
 
-  // Effect to load settings from localStorage or use mock if not available
   useEffect(() => {
     const storedSettings = localStorage.getItem('appSettings');
     if (storedSettings) {
-      const parsedSettings = JSON.parse(storedSettings);
+      const parsedSettings: AppSettings = JSON.parse(storedSettings);
+      // Ensure editors array exists
+      if (!parsedSettings.editors) {
+        parsedSettings.editors = [];
+      }
       setSettings(parsedSettings);
-      setEditorName(parsedSettings.defaultEditor?.name || '');
-      setEditorPath(parsedSettings.defaultEditor?.path || '');
     } else {
-      setSettings(mockSettings); // Initialize with mock if nothing in localStorage
-      setEditorName(mockSettings.defaultEditor?.name || '');
-      setEditorPath(mockSettings.defaultEditor?.path || '');
+      // Initialize with mock if nothing in localStorage, ensuring editors array
+      setSettings({ ...mockSettings, editors: mockSettings.editors || [] });
     }
   }, []);
   
-  // Effect to save settings to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('appSettings', JSON.stringify(settings));
   }, [settings]);
@@ -55,7 +56,7 @@ export default function SettingsPage() {
       return;
     }
     const newKeyEntry: ApiKeySetting = {
-      id: newApiKeyName.trim().toLowerCase().replace(/\s+/g, '-'), // Simple ID generation
+      id: `apikey-${Date.now()}`, 
       name: newApiKeyName.trim(),
       key: newApiKey.trim()
     };
@@ -104,29 +105,54 @@ export default function SettingsPage() {
     }));
     toast({ title: "Scan Path Deleted", description: "Scan path removed." });
   };
-  
-  const handleDefaultEditorChange = () => {
-    const newEditorSetting: EditorSetting = {
-        name: editorName,
-        path: editorPath,
-    };
+
+  const handleEditorDetailChange = (id: string, field: 'name' | 'path', value: string) => {
     setSettings(prev => ({
-        ...prev,
-        defaultEditor: newEditorSetting
+      ...prev,
+      editors: prev.editors.map(editor => 
+        editor.id === id ? { ...editor, [field]: value } : editor
+      )
     }));
   };
 
-
-  const handleSaveChanges = () => {
-    // Update default editor settings before saving all
-    const updatedSettings = {
-        ...settings,
-        defaultEditor: {
-            name: editorName,
-            path: editorPath
-        }
+  const handleAddEditor = () => {
+    if (!newEditorName.trim()) {
+      toast({ title: "Error", description: "Editor name cannot be empty.", variant: "destructive" });
+      return;
+    }
+    const newEditor: EditorSetting = {
+      id: `editor-${Date.now()}`,
+      name: newEditorName.trim(),
+      path: newEditorPath.trim() || undefined,
     };
-    setSettings(updatedSettings); // This will trigger the useEffect to save to localStorage
+    setSettings(prev => ({
+      ...prev,
+      editors: [...(prev.editors || []), newEditor]
+    }));
+    setNewEditorName('');
+    setNewEditorPath('');
+    toast({ title: "Editor Added", description: `Successfully added ${newEditor.name}.` });
+  };
+
+  const handleDeleteEditor = (id: string) => {
+    setSettings(prev => ({
+      ...prev,
+      editors: (prev.editors || []).filter(editor => editor.id !== id),
+      defaultEditorId: prev.defaultEditorId === id ? undefined : prev.defaultEditorId
+    }));
+    toast({ title: "Editor Deleted", description: "Editor has been removed." });
+  };
+
+  const handleSetDefaultEditor = (id: string) => {
+    setSettings(prev => ({
+      ...prev,
+      defaultEditorId: id
+    }));
+    toast({ title: "Default Editor Set", description: `Editor set as default.` });
+  };
+  
+  const handleSaveChanges = () => {
+    localStorage.setItem('appSettings', JSON.stringify(settings));
     toast({ title: "Settings Saved", description: "Your application settings have been updated." });
   };
 
@@ -138,7 +164,7 @@ export default function SettingsPage() {
             <SettingsIcon className="mr-3 h-8 w-8 text-primary" />
             Application Settings
           </CardTitle>
-          <CardDescription>Configure API keys, default scan paths, editor, and other application-wide settings.</CardDescription>
+          <CardDescription>Configure API keys, default scan paths, project editors, and other application-wide settings.</CardDescription>
         </CardHeader>
       </Card>
 
@@ -229,39 +255,78 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card id="editor-config"> {/* Added ID for anchoring */}
+      <Card id="editor-config">
         <CardHeader>
-          <CardTitle className="flex items-center"><Edit3 className="mr-2 h-5 w-5" /> Default Editor Configuration</CardTitle>
-          <CardDescription>Set your preferred code editor for opening projects.</CardDescription>
+          <CardTitle className="flex items-center"><Edit3 className="mr-2 h-5 w-5" /> Project Editors</CardTitle>
+          <CardDescription>Manage your code editors and set a default for opening projects.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="editorName">Editor Name</Label>
-              <Input 
-                  id="editorName" 
-                  placeholder="e.g., Visual Studio Code" 
-                  value={editorName} 
-                  onChange={(e) => {
-                    setEditorName(e.target.value);
-                    handleDefaultEditorChange();
-                  }}
-              />
+        <CardContent className="space-y-6">
+          <RadioGroup value={settings.defaultEditorId || ""} onValueChange={handleSetDefaultEditor}>
+            {(settings.editors || []).map((editor) => (
+              <div key={editor.id} className="p-4 border rounded-md space-y-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <RadioGroupItem value={editor.id} id={editor.id} />
+                        <Label htmlFor={editor.id} className="text-base font-medium cursor-pointer flex items-center">
+                            {editor.name}
+                            {editor.id === settings.defaultEditorId && <Star className="ml-2 h-4 w-4 text-yellow-500 fill-yellow-500" />}
+                        </Label>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteEditor(editor.id)} aria-label={`Delete ${editor.name}`}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor={`editorName-${editor.id}`}>Editor Name</Label>
+                  <Input
+                    id={`editorName-${editor.id}`}
+                    value={editor.name}
+                    onChange={(e) => handleEditorDetailChange(editor.id, 'name', e.target.value)}
+                    placeholder="e.g., Visual Studio Code"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor={`editorPath-${editor.id}`}>Path/Command (Optional)</Label>
+                  <Input
+                    id={`editorPath-${editor.id}`}
+                    value={editor.path || ''}
+                    onChange={(e) => handleEditorDetailChange(editor.id, 'path', e.target.value)}
+                    placeholder="e.g., code or /usr/bin/code"
+                  />
+                </div>
+              </div>
+            ))}
+          </RadioGroup>
+
+          {(settings.editors || []).length === 0 && (
+            <p className="text-muted-foreground">No editors configured yet. Add one below.</p>
+          )}
+
+          <Separator />
+          <div className="space-y-3 p-4 border border-dashed rounded-md">
+            <h3 className="text-lg font-semibold">Add New Editor</h3>
+            <div className="space-y-1">
+                <Label htmlFor="newEditorName">Editor Name</Label>
+                <Input 
+                    id="newEditorName" 
+                    placeholder="e.g., Sublime Text" 
+                    value={newEditorName} 
+                    onChange={(e) => setNewEditorName(e.target.value)} 
+                />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="editorPath">Editor Path/Command (Optional)</Label>
-              <Input 
-                  id="editorPath" 
-                  placeholder="e.g., code or /usr/bin/code" 
-                  value={editorPath} 
-                  onChange={(e) => {
-                    setEditorPath(e.target.value);
-                    handleDefaultEditorChange();
-                  }}
-              />
-              <p className="text-xs text-muted-foreground">
-                The command used to launch the editor (e.g., 'code' for VS Code, 'idea' for IntelliJ).
-              </p>
+            <div className="space-y-1">
+                <Label htmlFor="newEditorPath">Path/Command (Optional)</Label>
+                <Input 
+                    id="newEditorPath" 
+                    placeholder="e.g., subl" 
+                    value={newEditorPath} 
+                    onChange={(e) => setNewEditorPath(e.target.value)} 
+                />
             </div>
+            <Button onClick={handleAddEditor} variant="outline" className="mt-2">
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Editor
+            </Button>
+          </div>
         </CardContent>
       </Card>
       
