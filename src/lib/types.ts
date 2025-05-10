@@ -47,9 +47,16 @@ export interface ApiKeySetting {
   serviceUrl?: string; // Optional, if the service has a configurable base URL
 }
 
+export interface EditorSetting {
+  name: string;
+  path?: string; // Optional path/command
+  icon?: string; // Optional: name of a Lucide icon or path to an SVG
+}
+
 export interface AppSettings {
   apiKeys: ApiKeySetting[];
   defaultScanPaths: string[];
+  defaultEditor?: EditorSetting;
   // Add other app-wide settings here
   // e.g. defaultEditorPath: string;
 }

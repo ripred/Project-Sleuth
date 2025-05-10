@@ -15,10 +15,10 @@ import { toast } from "@/hooks/use-toast";
 import { projectSummary } from '@/ai/flows/project-summary';
 import { fetchWebDocumentation } from '@/ai/flows/web-documentation';
 import { suggestProjectTags } from '@/ai/flows/ai-tagging';
-import type { Project, ProjectSummaryOutput, FetchWebDocumentationOutput, SuggestProjectTagsOutput } from '@/lib/types';
+import type { Project, ProjectSummaryOutput, FetchWebDocumentationOutput, SuggestProjectTagsOutput, AppSettings, EditorSetting } from '@/lib/types';
 import { mockProjects } from '@/lib/mock-data';
 import {
-  ArrowLeft, Info, FileCode, GitMerge, StickyNote, BookOpen, ExternalLink, Cpu, Tags, Rocket, PlayCircle, Eye, AlertCircle, Loader2, CalendarClock
+  ArrowLeft, Info, FileCode, GitMerge, StickyNote, BookOpen, ExternalLink, Cpu, Tags, Rocket, PlayCircle, Eye, AlertCircle, Loader2, CalendarClock, Edit3, Settings2
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -75,12 +75,24 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [userNotes, setUserNotes] = useState<string>("");
   const [isLoading, setIsLoading] = useState<'summary' | 'docs' | 'tags' | null>(null);
+  const [configuredEditor, setConfiguredEditor] = useState<EditorSetting | null>(null);
 
   useEffect(() => {
     if (id) {
       const foundProject = mockProjects.find(p => p.id === id);
       setProject(foundProject || null);
       setUserNotes(foundProject?.userNotes || "");
+    }
+    // Load editor settings from localStorage
+    const storedSettings = localStorage.getItem('appSettings');
+    if (storedSettings) {
+      try {
+        const appSettings: AppSettings = JSON.parse(storedSettings);
+        setConfiguredEditor(appSettings.defaultEditor || null);
+      } catch (error) {
+        console.error("Failed to parse appSettings from localStorage", error);
+        setConfiguredEditor(null);
+      }
     }
   }, [id]);
 
@@ -140,7 +152,8 @@ export default function ProjectDetailPage() {
   };
   
   const handleOpenEditor = () => {
-    toast({ title: "Open in Editor", description: "This feature would open the project in your configured IDE (not implemented in web demo)." });
+    const editorCommand = configuredEditor?.path || configuredEditor?.name || "your editor";
+    toast({ title: "Open in Editor", description: `This feature would open the project in ${editorCommand} (not implemented in web demo).` });
   };
   
   const handleGitAction = (action: string) => {
@@ -178,9 +191,27 @@ export default function ProjectDetailPage() {
             <CardDescription className="text-lg text-muted-foreground">{project.path}</CardDescription>
             {project.mainLanguage && <Badge variant="secondary" className="mt-2">{project.mainLanguage}</Badge>}
           </div>
-          <Button onClick={handleOpenEditor} variant="default" size="lg">
-            <ExternalLink className="mr-2 h-5 w-5" /> Open in Editor
-          </Button>
+          <div className="flex flex-col items-end">
+            <Button onClick={handleOpenEditor} variant="default" size="lg">
+              <ExternalLink className="mr-2 h-5 w-5" /> Open in Editor
+            </Button>
+            {configuredEditor && configuredEditor.name && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                <Link href="/settings#editor-config" className="hover:text-primary hover:underline flex items-center gap-1">
+                  <Edit3 className="h-4 w-4" />
+                  {configuredEditor.name}
+                </Link>
+              </div>
+            )}
+             {!configuredEditor?.name && (
+                <div className="mt-2 text-sm text-muted-foreground">
+                    <Link href="/settings#editor-config" className="hover:text-primary hover:underline flex items-center gap-1">
+                        <Settings2 className="h-4 w-4" />
+                        Configure Editor
+                    </Link>
+                </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <p>{project.description || "No description available for this project."}</p>
@@ -362,4 +393,3 @@ export default function ProjectDetailPage() {
     </div>
   );
 }
-

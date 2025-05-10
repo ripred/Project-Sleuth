@@ -1,5 +1,5 @@
 
-import type { Project } from "./types";
+import type { Project, AppSettings } from "./types";
 
 export const mockProjects: Project[] = [
   {
@@ -107,11 +107,14 @@ export const mockProjects: Project[] = [
   }
 ];
 
-export const mockSettings: import("./types").AppSettings = {
+export const mockSettings: AppSettings = {
     apiKeys: [
         { id: "googleAI", name: "Google AI API Key", key: "" },
         { id: "openAI", name: "OpenAI API Key", key: "" },
     ],
-    defaultScanPaths: ["/Users/dev/apps", "/Users/dev/work", "/Users/dev/personal"]
+    defaultScanPaths: ["/Users/dev/apps", "/Users/dev/work", "/Users/dev/personal"],
+    defaultEditor: {
+        name: "Visual Studio Code",
+        path: "code" // Command to launch VS Code
+    }
 };
-
