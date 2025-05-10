@@ -33,7 +33,7 @@ export function AppSidebar() {
         <Link
           href="/"
           className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center"
-        >
+          legacyBehavior>
           <div>
  <Briefcase className="h-7 w-7 text-primary group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
  <span className="text-xl font-semibold group-data-[collapsible=icon]:hidden">Project Sleuth</span>
@@ -53,7 +53,7 @@ export function AppSidebar() {
                   "group-data-[collapsible=icon]:justify-center"
                 )}
               >
-                <Link href={item.href} passHref>
+                <Link href={item.href} passHref legacyBehavior>
 
                   <div className="flex items-center py-2">
                     <item.icon className="h-5 w-5" />

@@ -285,7 +285,8 @@ export default function ProjectsPage() {
                         <div className="font-medium text-primary hover:underline">
                           <Link
                             href={`/projects/${project.id}`}
-                            onClick={(e) => e.stopPropagation()}>
+                            onClick={(e) => e.stopPropagation()}
+                            legacyBehavior>
                               {project.name}
                           </Link>
                         </div>
