@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from '@/components/ui/separator';
 import { toast } from "@/hooks/use-toast";
@@ -18,7 +19,7 @@ import { suggestProjectTags } from '@/ai/flows/ai-tagging';
 import type { Project, ProjectSummaryOutput, FetchWebDocumentationOutput, SuggestProjectTagsOutput, AppSettings, EditorSetting } from '@/lib/types';
 import { mockProjects } from '@/lib/mock-data';
 import {
-  ArrowLeft, Info, FileCode, GitMerge, StickyNote, BookOpen, ExternalLink, Cpu, Tags, Rocket, PlayCircle, Eye, AlertCircle, Loader2, CalendarClock, Edit3, Settings2, CalendarIcon, HelpCircle
+  ArrowLeft, Info, FileCode, GitMerge, StickyNote, BookOpen, ExternalLink, Cpu, Tags, Rocket, PlayCircle, Eye, AlertCircle, Loader2, CalendarClock, Edit3, Settings2, CalendarIcon, HelpCircle, Save, XCircle, PlusCircle
 } from 'lucide-react';
 import Image from 'next/image';
 import { Calendar } from "@/components/ui/calendar";
@@ -77,22 +78,35 @@ export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params ? params.id as string : undefined;
+  
   const [project, setProject] = useState<Project | null>(null);
   const [userNotes, setUserNotes] = useState<string>("");
   const [isLoading, setIsLoading] = useState<'summary' | 'docs' | 'tags' | null>(null);
   const [configuredEditor, setConfiguredEditor] = useState<EditorSetting | null>(null);
 
+  // State for inline editing
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editingNameValue, setEditingNameValue] = useState("");
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editingDescriptionValue, setEditingDescriptionValue] = useState("");
+  const [isEditingMainLanguage, setIsEditingMainLanguage] = useState(false);
+  const [editingMainLanguageValue, setEditingMainLanguageValue] = useState("");
+  const [newCustomTag, setNewCustomTag] = useState("");
+
   useEffect(() => {
     if (id) {
       const foundProject = mockProjects.find(p => p.id === id);
        if (foundProject) {
-        // Ensure dueDate is a Date object if it's a string (it should be Date from mockData)
         const processedProject = {
             ...foundProject,
             dueDate: foundProject.dueDate ? new Date(foundProject.dueDate) : undefined,
+            customTags: foundProject.customTags || [], // Ensure customTags is an array
         };
         setProject(processedProject);
         setUserNotes(processedProject.userNotes || "");
+        setEditingNameValue(processedProject.name);
+        setEditingDescriptionValue(processedProject.description || "");
+        setEditingMainLanguageValue(processedProject.mainLanguage || "");
       } else {
         setProject(null);
       }
@@ -104,9 +118,9 @@ export default function ProjectDetailPage() {
         const appSettings: AppSettings = JSON.parse(storedSettings);
         if (appSettings.defaultEditorId && appSettings.editors && appSettings.editors.length > 0) {
           const defaultEditor = appSettings.editors.find(editor => editor.id === appSettings.defaultEditorId);
-          setConfiguredEditor(defaultEditor || appSettings.editors[0]); // Fallback to first editor if default not found
+          setConfiguredEditor(defaultEditor || appSettings.editors[0]); 
         } else if (appSettings.editors && appSettings.editors.length > 0) {
-           setConfiguredEditor(appSettings.editors[0]); // Fallback to first editor if no default ID
+           setConfiguredEditor(appSettings.editors[0]); 
         }
          else {
           setConfiguredEditor(null);
@@ -118,13 +132,67 @@ export default function ProjectDetailPage() {
     }
   }, [id]);
 
+  const updateMockProject = (updatedProject: Project) => {
+    const projectIndex = mockProjects.findIndex(p => p.id === updatedProject.id);
+    if (projectIndex !== -1) {
+      mockProjects[projectIndex] = { ...mockProjects[projectIndex], ...updatedProject };
+    }
+  };
+
+  const handleSaveName = () => {
+    if (!project) return;
+    const updatedProject = { ...project, name: editingNameValue };
+    setProject(updatedProject);
+    updateMockProject(updatedProject);
+    setIsEditingName(false);
+    toast({ title: "Project Name Updated", description: `Name changed to "${editingNameValue}".` });
+  };
+
+  const handleSaveDescription = () => {
+    if (!project) return;
+    const updatedProject = { ...project, description: editingDescriptionValue };
+    setProject(updatedProject);
+    updateMockProject(updatedProject);
+    setIsEditingDescription(false);
+    toast({ title: "Project Description Updated" });
+  };
+  
+  const handleSaveMainLanguage = () => {
+    if (!project) return;
+    const updatedProject = { ...project, mainLanguage: editingMainLanguageValue };
+    setProject(updatedProject);
+    updateMockProject(updatedProject);
+    setIsEditingMainLanguage(false);
+    toast({ title: "Main Language Updated", description: `Set to ${editingMainLanguageValue}.` });
+  };
+
+  const handleAddCustomTag = () => {
+    if (!project || !newCustomTag.trim()) return;
+    const updatedTags = [...(project.customTags || []), newCustomTag.trim()];
+    const updatedProject = { ...project, customTags: updatedTags };
+    setProject(updatedProject);
+    updateMockProject(updatedProject);
+    setNewCustomTag("");
+    toast({ title: "Custom Tag Added", description: `Tag "${newCustomTag.trim()}" added.` });
+  };
+
+  const handleRemoveCustomTag = (tagToRemove: string) => {
+    if (!project) return;
+    const updatedTags = (project.customTags || []).filter(tag => tag !== tagToRemove);
+    const updatedProject = { ...project, customTags: updatedTags };
+    setProject(updatedProject);
+    updateMockProject(updatedProject);
+    toast({ title: "Custom Tag Removed", description: `Tag "${tagToRemove}" removed.` });
+  };
+
   const handleAnalyze = async () => {
     if (!project) return;
     setIsLoading('summary');
     try {
-      // For demo, using project description as fileContents and path as projectPath
       const summary = await handleAnalyzeProjectServer(project.path, project.description || "No description available.");
-      setProject(prev => prev ? { ...prev, aiSummary: summary } : null);
+      const updatedProject = { ...project, aiSummary: summary };
+      setProject(updatedProject);
+      updateMockProject(updatedProject);
     } catch (e) { /* error handled by toast in server action */ }
     setIsLoading(null);
   };
@@ -137,7 +205,9 @@ export default function ProjectDetailPage() {
     setIsLoading('docs');
     try {
       const docs = await handleFetchDocumentationServer(project.name, project.aiSummary.technologies);
-      setProject(prev => prev ? { ...prev, aiDocumentationUrls: docs.documentationUrls } : null);
+      const updatedProject = { ...project, aiDocumentationUrls: docs.documentationUrls };
+      setProject(updatedProject);
+      updateMockProject(updatedProject);
     } catch (e) { /* error handled by toast in server action */ }
     setIsLoading(null);
   };
@@ -149,13 +219,14 @@ export default function ProjectDetailPage() {
     }
     setIsLoading('tags');
     try {
-      // Using simplified inputs for demo
       const tags = await handleSuggestTagsServer(
         project.aiSummary.purpose || project.description || "Project Details", 
-        "main.ts, package.json, README.md", // Mock file list
+        "main.ts, package.json, README.md", 
         project.mainLanguage || "unknown"
       );
-      setProject(prev => prev ? { ...prev, aiTags: tags.tags } : null);
+      const updatedProject = { ...project, aiTags: tags.tags };
+      setProject(updatedProject);
+      updateMockProject(updatedProject);
     } catch (e) { /* error handled by toast in server action */ }
     setIsLoading(null);
   };
@@ -163,13 +234,9 @@ export default function ProjectDetailPage() {
 
   const handleSaveNotes = () => {
     if (!project) return;
-    // In a real app, save notes to a DB or file
-    setProject(prev => prev ? { ...prev, userNotes } : null);
-    // Update mockProjects (for demo persistence across navigation)
-    const projectIndex = mockProjects.findIndex(p => p.id === project.id);
-    if (projectIndex !== -1) {
-      mockProjects[projectIndex].userNotes = userNotes;
-    }
+    const updatedProject = { ...project, userNotes };
+    setProject(updatedProject);
+    updateMockProject(updatedProject);
     toast({ title: "Notes Saved", description: "Your notes for this project have been saved." });
   };
   
@@ -184,17 +251,9 @@ export default function ProjectDetailPage() {
 
   const handleDueDateChange = (date: Date | undefined) => {
     if (!project) return;
-
-    setProject(prev => {
-      if (!prev) return null;
-      return { ...prev, dueDate: date };
-    });
-
-    const projectIndex = mockProjects.findIndex(p => p.id === project.id);
-    if (projectIndex !== -1) {
-      mockProjects[projectIndex].dueDate = date;
-    }
-
+    const updatedProject = { ...project, dueDate: date };
+    setProject(updatedProject);
+    updateMockProject(updatedProject);
     if (date) {
       toast({ title: "Due Date Updated", description: `Due date set to ${format(date, "PPP")}.` });
     } else {
@@ -227,14 +286,40 @@ export default function ProjectDetailPage() {
 
         <Card className="shadow-lg">
           <CardHeader className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div>
-              <CardTitle className="text-3xl font-bold flex items-center">
-                {project.name}
-              </CardTitle>
+            <div className="flex-grow">
+              {!isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-3xl font-bold">{project.name}</CardTitle>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => { setIsEditingName(true); setEditingNameValue(project.name); }}>
+                        <Edit3 className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Edit Project Name</p></TooltipContent>
+                  </Tooltip>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Input value={editingNameValue} onChange={(e) => setEditingNameValue(e.target.value)} className="text-3xl font-bold h-auto py-0" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={handleSaveName}><Save className="h-5 w-5 text-green-500" /></Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Save Name</p></TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => setIsEditingName(false)}><XCircle className="h-5 w-5 text-red-500" /></Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Cancel</p></TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
               <CardDescription className="text-lg text-muted-foreground">{project.path}</CardDescription>
               {project.mainLanguage && <Badge variant="secondary" className="mt-2">{project.mainLanguage}</Badge>}
             </div>
-            <div className="flex flex-col items-end">
+            <div className="flex flex-col items-end shrink-0">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button onClick={handleOpenEditor} variant="default" size="lg">
@@ -279,7 +364,37 @@ export default function ProjectDetailPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <p>{project.description || "No description available for this project."}</p>
+            {!isEditingDescription ? (
+              <div className="flex items-start gap-2">
+                <p className="flex-grow">{project.description || "No description available for this project."}</p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={() => { setIsEditingDescription(true); setEditingDescriptionValue(project.description || ""); }}>
+                      <Edit3 className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Edit Description</p></TooltipContent>
+                </Tooltip>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Textarea value={editingDescriptionValue} onChange={(e) => setEditingDescriptionValue(e.target.value)} rows={3} />
+                <div className="flex gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={handleSaveDescription}><Save className="mr-2 h-4 w-4" />Save</Button>
+                    </TooltipTrigger>
+                     <TooltipContent><p>Save Description</p></TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" onClick={() => setIsEditingDescription(false)}><XCircle className="mr-2 h-4 w-4" />Cancel</Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Cancel</p></TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -305,7 +420,29 @@ export default function ProjectDetailPage() {
                     <div className="space-y-1">
                       <p><strong>Size:</strong> {project.projectSize || 'N/A'}</p>
                       <p><strong>Complexity:</strong> {project.complexity || 'N/A'}</p>
-                      <p><strong>Languages:</strong> {project.mainLanguage}{project.otherLanguages && project.otherLanguages.length > 0 ? `, ${project.otherLanguages.join(', ')}` : ''}</p>
+                      <div className="flex items-center gap-2">
+                        <strong>Main Language:</strong>
+                        {!isEditingMainLanguage ? (
+                          <>
+                            <span>{project.mainLanguage || 'N/A'}</span>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => { setIsEditingMainLanguage(true); setEditingMainLanguageValue(project.mainLanguage || ""); }}>
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Edit Main Language</p></TooltipContent>
+                            </Tooltip>
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Input value={editingMainLanguageValue} onChange={(e) => setEditingMainLanguageValue(e.target.value)} className="h-8" />
+                            <Tooltip> <TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={handleSaveMainLanguage}><Save className="h-4 w-4 text-green-500" /></Button></TooltipTrigger><TooltipContent><p>Save Language</p></TooltipContent></Tooltip>
+                            <Tooltip> <TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => setIsEditingMainLanguage(false)}><XCircle className="h-4 w-4 text-red-500" /></Button></TooltipTrigger><TooltipContent><p>Cancel</p></TooltipContent></Tooltip>
+                          </div>
+                        )}
+                      </div>
+                       <p><strong>Other Languages:</strong> {project.otherLanguages && project.otherLanguages.length > 0 ? project.otherLanguages.join(', ') : 'N/A'}</p>
                       <p><strong>Last Scanned:</strong> {project.lastScanned ? new Date(project.lastScanned).toLocaleString() : 'N/A'}</p>
                       <p><strong>Last Worked On:</strong> {project.lastWorkedOn ? new Date(project.lastWorkedOn).toLocaleString() : 'N/A'}</p>
                       <div className="flex items-baseline space-x-2 mt-1">
@@ -395,6 +532,41 @@ export default function ProjectDetailPage() {
                       </CardContent>
                   </Card>
                 )}
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-2 flex items-center"><Tags className="mr-2 h-5 w-5 text-primary"/>Custom Tags</h3>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {(project.customTags || []).map(tag => (
+                      <Badge key={tag} variant="outline" className="flex items-center gap-1">
+                        {tag}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button onClick={() => handleRemoveCustomTag(tag)} className="ml-1 focus:outline-none">
+                              <XCircle className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent><p>Remove tag: {tag}</p></TooltipContent>
+                        </Tooltip>
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input 
+                      value={newCustomTag} 
+                      onChange={(e) => setNewCustomTag(e.target.value)} 
+                      placeholder="Add a custom tag"
+                      className="h-8"
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddCustomTag();}}
+                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button onClick={handleAddCustomTag} size="sm" variant="outline"><PlusCircle className="mr-2 h-4 w-4" />Add Tag</Button>
+                      </TooltipTrigger>
+                      <TooltipContent><p>Add this custom tag</p></TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+
                 {project.aiTags && project.aiTags.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold mb-2 flex items-center"><Tags className="mr-2 h-5 w-5 text-primary"/>Suggested AI Tags</h3>
@@ -476,7 +648,7 @@ export default function ProjectDetailPage() {
                 />
                  <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button onClick={handleSaveNotes}>Save Notes</Button>
+                        <Button onClick={handleSaveNotes}><Save className="mr-2 h-4 w-4" />Save Notes</Button>
                     </TooltipTrigger>
                     <TooltipContent>
                         <p>Save your notes for this project (simulated persistence for demo).</p>
