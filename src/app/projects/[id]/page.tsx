@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation'; // Corrected import
+import { useParams, useRouter } from 'next/navigation'; 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +18,7 @@ import { suggestProjectTags } from '@/ai/flows/ai-tagging';
 import type { Project, ProjectSummaryOutput, FetchWebDocumentationOutput, SuggestProjectTagsOutput } from '@/lib/types';
 import { mockProjects } from '@/lib/mock-data';
 import {
-  ArrowLeft, Info, FileCode, GitMerge, StickyNote, BookOpen, ExternalLink, Cpu, Tags, Rocket, PlayCircle, Eye, AlertCircle, Loader2
+  ArrowLeft, Info, FileCode, GitMerge, StickyNote, BookOpen, ExternalLink, Cpu, Tags, Rocket, PlayCircle, Eye, AlertCircle, Loader2, CalendarClock
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -210,6 +210,7 @@ export default function ProjectDetailPage() {
                   <p><strong>Complexity:</strong> {project.complexity || 'N/A'}</p>
                   <p><strong>Languages:</strong> {project.mainLanguage}{project.otherLanguages && project.otherLanguages.length > 0 ? `, ${project.otherLanguages.join(', ')}` : ''}</p>
                   <p><strong>Last Scanned:</strong> {project.lastScanned ? new Date(project.lastScanned).toLocaleString() : 'N/A'}</p>
+                  <p><strong>Last Worked On:</strong> {project.lastWorkedOn ? new Date(project.lastWorkedOn).toLocaleString() : 'N/A'}</p>
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-2">AI Actions</h3>
@@ -360,3 +361,4 @@ export default function ProjectDetailPage() {
     </div>
   );
 }
+

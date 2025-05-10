@@ -9,6 +9,7 @@ export interface Project {
   path: string;
   description?: string; // User-added or auto-generated
   lastScanned?: Date;
+  lastWorkedOn?: Date; // New field
   
   // AI Generated fields
   aiSummary?: ProjectSummaryOutput;
@@ -58,3 +59,4 @@ export interface ProjectSettings {
   preferredEditor?: string;
   customBuildCommand?: string;
 }
+

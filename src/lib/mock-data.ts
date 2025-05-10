@@ -12,6 +12,7 @@ export const mockProjects: Project[] = [
     projectSize: "Large",
     complexity: "High",
     lastScanned: new Date("2024-07-28T10:00:00Z"),
+    lastWorkedOn: new Date("2024-07-28T18:30:00Z"),
     gitData: {
       currentBranch: "main",
       lastCommit: "feat: initial dashboard setup",
@@ -40,6 +41,7 @@ export const mockProjects: Project[] = [
     projectSize: "Very Large",
     complexity: "High",
     lastScanned: new Date("2024-07-27T14:30:00Z"),
+    lastWorkedOn: new Date("2024-07-26T10:15:00Z"),
     gitData: {
       currentBranch: "release/2.3.1",
       lastCommit: "fix: memory leak in caching module",
@@ -65,6 +67,7 @@ export const mockProjects: Project[] = [
     projectSize: "Small",
     complexity: "Low",
     lastScanned: new Date("2024-07-28T09:15:00Z"),
+    // lastWorkedOn: undefined, // Example of a project without this date
     gitData: {
       currentBranch: "feat/new-theme",
       hasUncommittedChanges: false
@@ -83,6 +86,7 @@ export const mockProjects: Project[] = [
     projectSize: "Medium",
     complexity: "Medium",
     lastScanned: new Date("2024-07-25T18:00:00Z"),
+    lastWorkedOn: new Date("2024-07-25T17:00:00Z"),
     gitData: {
         currentBranch: "main",
         hasUncommittedChanges: true,
@@ -106,3 +110,4 @@ export const mockSettings: import("./types").AppSettings = {
     ],
     defaultScanPaths: ["/Users/dev/apps", "/Users/dev/work", "/Users/dev/personal"]
 };
+
